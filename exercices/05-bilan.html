@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#6B7C5C">
+<title>Métalux — Le bilan</title>
+<style>
+:root{
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;--green-dark:#4a5a3d;
+  --gold:#C17F24;--gold-light:#f9eed8;--gold-dark:#8a5a18;
+  --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:40px}
+
+.app-header{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:2px}
+.app-header p{font-size:12px;color:rgba(255,255,255,.65)}
+.tab-bar{display:flex;gap:0;padding:0;border-top:1px solid rgba(255,255,255,.15);overflow-x:auto;scrollbar-width:none;margin-top:10px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+
+.score-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px}
+.score-num{font-size:20px;font-weight:700;color:var(--green)}
+.score-label{color:var(--text2);flex:1}
+.score-pct{font-size:12px;font-weight:600;color:var(--text3)}
+
+.pane{display:none;padding:16px 16px 0}
+.pane.on{display:block}
+
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px}
+.section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+
+/* MÉMO BILAN */
+.bilan-memo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.bilan-col{border-radius:var(--radius-lg);overflow:hidden}
+.bilan-col-header{padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.bilan-col-title{font-size:14px;font-weight:700;color:#fff}
+.bilan-col-total{font-size:13px;font-weight:700;color:#fff}
+.bilan-cat{padding:5px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);background:var(--bg3)}
+.bilan-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:.5px solid var(--border);background:var(--bg);font-size:13px}
+.bilan-row:last-child{border-bottom:none}
+.bilan-row.warn{background:var(--gold-light)}
+.bilan-row.alert{background:#FCEBEB}
+.bilan-row.subtotal{background:var(--green-light)}
+.bilan-row.total{padding:10px 14px}
+.bilan-label{color:var(--text);font-weight:400}
+.bilan-label.bold{font-weight:700}
+.bilan-value{font-weight:700;white-space:nowrap}
+.bilan-value.pos{color:#3B6D11}
+.bilan-value.warn{color:#854F0B}
+.bilan-value.neg{color:#A32D2D}
+.bilan-value.white{color:#fff}
+.actif-col .bilan-col-header{background:var(--green)}
+.passif-col .bilan-col-header{background:var(--gold)}
+.actif-col .bilan-row.total{background:var(--green)}
+.passif-col .bilan-row.total{background:var(--gold)}
+
+/* EX1 */
+.op-bank{display:flex;flex-wrap:wrap;gap:8px;padding:14px;background:var(--bg);border-radius:var(--radius-lg);margin-bottom:16px;border:1px solid var(--border)}
+.op-card{padding:9px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;color:var(--text);cursor:pointer;transition:all .15s;user-select:none;line-height:1.3}
+.op-card.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark);transform:scale(1.02)}
+.op-card.placed{opacity:.35;pointer-events:none;border-style:dashed}
+
+.cat-cols{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.cat-col{border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;border:1px solid var(--border);transition:transform .1s}
+.cat-col:active{transform:scale(.99)}
+.col-header{padding:12px 16px;display:flex;align-items:center;gap:10px}
+.col-header-name{font-size:14px;font-weight:700;color:#fff}
+.col-header-hint{font-size:12px;color:rgba(255,255,255,.7);margin-left:auto}
+.col-drop{min-height:48px;padding:10px;display:flex;flex-wrap:wrap;gap:6px;background:var(--bg)}
+.col-drop.highlight{background:var(--green-light)}
+
+.col-ai .col-header{background:var(--green)}
+.col-ac .col-header{background:var(--green-mid)}
+.col-tr .col-header{background:var(--gold)}
+.col-cp .col-header{background:var(--green-dark)}
+.col-df .col-header{background:#5a4a3d}
+.col-de .col-header{background:#8a6a4d}
+
+.placed-tag{padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;line-height:1.3}
+.placed-tag.pending{background:var(--green-light);color:var(--green-dark);border:1px solid #a8c090}
+.placed-tag.correct{background:#EAF3DE;color:#27500A;border:1px solid #97C459;pointer-events:none}
+.placed-tag.wrong{background:#FCEBEB;color:#791F1F;border:1px solid #F09595;pointer-events:none}
+
+.feedback{padding:12px 14px;border-radius:var(--radius);margin-bottom:16px;font-size:13px;line-height:1.5;border:1px solid}
+.feedback.ok{background:#EAF3DE;color:#27500A;border-color:#97C459}
+.feedback.ko{background:#FCEBEB;color:#791F1F;border-color:#F09595}
+.feedback.info{background:var(--green-light);color:var(--green-dark);border-color:#a8c090}
+
+/* EX2 */
+.q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.q-header{padding:13px 14px;display:flex;align-items:flex-start;gap:10px}
+.q-num{width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.q-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.q-choices{display:flex;gap:8px;padding:0 14px 13px;flex-wrap:wrap}
+.doc-btn{padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid;transition:all .15s;min-height:40px}
+.doc-btn:active{transform:scale(.96)}
+.doc-btn.selected{border-width:2px}
+.doc-btn.correct{pointer-events:none;border-width:2px}
+.doc-btn.wrong{pointer-events:none;border-width:2px}
+.doc-btn.dimmed{opacity:.3;pointer-events:none}
+.q-feedback{padding:8px 14px 12px;font-size:12px;line-height:1.5;display:none}
+.q-feedback.show{display:block}
+.q-feedback.ok{color:#27500A}
+.q-feedback.ko{color:#791F1F}
+
+.niveau{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;margin-bottom:12px}
+.n1{background:#EAF3DE;color:#27500A}
+.n2{background:var(--gold-light);color:var(--gold-dark)}
+.n3{background:#FCEBEB;color:#791F1F}
+
+.btn-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.btn{padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid;min-height:46px;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--green);color:#fff;border-color:var(--green);flex:1}
+.btn-secondary{background:var(--bg);color:var(--text2);border-color:var(--border)}
+.btn-next{background:var(--green);color:#fff;border-color:var(--green);width:100%;margin-bottom:20px}
+.instruction{background:var(--green-light);color:var(--green-dark);border-radius:var(--radius);padding:10px 13px;font-size:12px;margin-bottom:16px;display:flex;align-items:flex-start;gap:8px;border:1px solid #a8c090}
+
+/* EXERCICE FINAL */
+.donnees-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:16px}
+.donnees-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.donnee-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid var(--border);font-size:13px}
+.donnee-row:last-child{border-bottom:none}
+.donnee-label{color:var(--text2)}
+.donnee-value{font-weight:700;color:var(--text)}
+.donnee-cat{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);padding:6px 0 2px}
+
+.sig-step{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.sig-step.locked{opacity:.5;pointer-events:none}
+.sig-step-header{padding:12px 14px;display:flex;align-items:center;gap:10px}
+.sig-step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.sig-step-title{font-size:14px;font-weight:600;color:var(--text)}
+.sig-step-formula{font-size:12px;color:var(--text3);margin-top:2px}
+.sig-step-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+.input-row{display:flex;align-items:center;gap:8px}
+.input-label{font-size:13px;color:var(--text2);flex:1}
+.input-field{width:110px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;text-align:right;background:var(--bg2);color:var(--text);-moz-appearance:textfield}
+.input-field:focus{outline:none;border-color:var(--green);background:var(--green-light)}
+.input-field.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A}
+.input-field.wrong{border-color:#A32D2D;background:#FCEBEB;color:#791F1F}
+.input-unit{font-size:12px;color:var(--text3)}
+.step-feedback{font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;display:none}
+.step-feedback.show.ok{display:block;background:#EAF3DE;color:#27500A}
+.step-feedback.show.ko{display:block;background:#FCEBEB;color:#791F1F}
+.step-check{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:#fff;width:100%}
+
+.risk-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.risk-header{padding:12px 14px;display:flex;align-items:center;gap:10px}
+.risk-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.risk-title{font-size:14px;font-weight:600;color:var(--text)}
+.risk-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+.risk-q{font-size:13px;color:var(--text2);line-height:1.5;padding:10px 12px;background:var(--bg2);border-radius:8px}
+.risk-choices{display:flex;flex-direction:column;gap:8px}
+.risk-btn{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--text);transition:all .15s;text-align:left}
+.risk-btn.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark)}
+.risk-btn.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none;border-width:2px}
+.risk-btn.wrong{border-color:#A32D2D;background:#FCEBEB;color:#791F1F;pointer-events:none;border-width:2px}
+.risk-btn.dimmed{opacity:.35;pointer-events:none}
+.risk-feedback{font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;display:none}
+.risk-feedback.show.ok{display:block;background:#EAF3DE;color:#27500A}
+.risk-feedback.show.ko{display:block;background:#FCEBEB;color:#791F1F}
+.risk-check{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:#fff;width:100%}
+
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s}
+
+.result-final{background:var(--green);border-radius:var(--radius-lg);padding:20px;text-align:center;margin-bottom:20px;display:none}
+.result-final.show{display:block}
+.result-final-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
+.result-score{font-size:36px;font-weight:800;color:var(--gold);margin:12px 0}
+.result-final-sub{font-size:14px;color:rgba(255,255,255,.8);line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Métalux — Le bilan</h1>
+  <p>Formation lecture des documents comptables</p>
+  <div class="tab-bar">
+    <button class="tab on" onclick="switchTab('memo',this)">Mémo</button>
+    <button class="tab" onclick="switchTab('ex1',this)">Exercice 1 · Classer</button>
+    <button class="tab" onclick="switchTab('ex2',this)">Exercice 2 · Lire</button>
+    <button class="tab" onclick="switchTab('final',this)">Exercice final</button>
+  </div>
+</div>
+
+<div class="score-bar" id="score-bar" style="display:none">
+  <span class="score-num" id="score-num">0</span>
+  <span class="score-label" id="score-label">points</span>
+  <span class="score-pct" id="score-pct"></span>
+</div>
+
+<!-- MÉMO -->
+<div id="pane-memo" class="pane on">
+  <div class="section-label">Référence</div>
+  <div class="section-title">Le bilan de Métalux — 31/12/2023</div>
+  <div class="section-sub">Photo de l'entreprise à un instant T. Actif = Passif toujours.</div>
+
+  <div class="bilan-memo">
+    <div class="bilan-col actif-col">
+      <div class="bilan-col-header"><div class="bilan-col-title">ACTIF</div><div class="bilan-col-total">1 587 k€</div></div>
+      <div class="bilan-cat">Actif immobilisé</div>
+      <div class="bilan-row"><span class="bilan-label">Immobilisations corporelles</span><span class="bilan-value">620</span></div>
+      <div class="bilan-row"><span class="bilan-label">Immobilisations incorporelles</span><span class="bilan-value">15</span></div>
+      <div class="bilan-row subtotal"><span class="bilan-label bold">Total immobilisé</span><span class="bilan-value pos">635</span></div>
+      <div class="bilan-cat">Actif circulant</div>
+      <div class="bilan-row warn"><span class="bilan-label">Stocks ⚠</span><span class="bilan-value warn">480</span></div>
+      <div class="bilan-row warn"><span class="bilan-label">Créances clients ⚠</span><span class="bilan-value warn">412</span></div>
+      <div class="bilan-row"><span class="bilan-label">Autres créances</span><span class="bilan-value">48</span></div>
+      <div class="bilan-row subtotal"><span class="bilan-label bold">Total circulant</span><span class="bilan-value warn">940</span></div>
+      <div class="bilan-row alert"><span class="bilan-label bold">Disponibilités 🚨</span><span class="bilan-value neg">12</span></div>
+      <div class="bilan-row total"><span class="bilan-label bold" style="color:#fff">TOTAL ACTIF</span><span class="bilan-value white">1 587</span></div>
+    </div>
+
+    <div class="bilan-col passif-col">
+      <div class="bilan-col-header"><div class="bilan-col-title">PASSIF</div><div class="bilan-col-total">1 587 k€</div></div>
+      <div class="bilan-cat">Capitaux propres</div>
+      <div class="bilan-row"><span class="bilan-label">Capital social</span><span class="bilan-value">150</span></div>
+      <div class="bilan-row"><span class="bilan-label">Réserves</span><span class="bilan-value">148</span></div>
+      <div class="bilan-row alert"><span class="bilan-label">Résultat N (perte) 🚨</span><span class="bilan-value neg">−42</span></div>
+      <div class="bilan-row subtotal"><span class="bilan-label bold">Total CP</span><span class="bilan-value warn">256</span></div>
+      <div class="bilan-cat">Dettes financières</div>
+      <div class="bilan-row warn"><span class="bilan-label">Emprunts bancaires ⚠</span><span class="bilan-value warn">580</span></div>
+      <div class="bilan-row alert"><span class="bilan-label">Découvert 🚨</span><span class="bilan-value neg">82</span></div>
+      <div class="bilan-cat">Dettes d'exploitation</div>
+      <div class="bilan-row"><span class="bilan-label">Dettes fournisseurs</span><span class="bilan-value">318</span></div>
+      <div class="bilan-row"><span class="bilan-label">Dettes sociales & autres</span><span class="bilan-value">351</span></div>
+      <div class="bilan-row total"><span class="bilan-label bold" style="color:#fff">TOTAL PASSIF</span><span class="bilan-value white">1 587</span></div>
+    </div>
+  </div>
+
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:16px;font-size:13px">
+    <div style="font-weight:700;color:var(--text);margin-bottom:10px">Les 4 questions clés du bilan</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:4px"></div><span style="color:var(--text2)"><strong style="color:var(--text)">Solvabilité</strong> — Les CP couvrent-ils au moins 30% du bilan ?</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:8px;height:8px;border-radius:50%;background:var(--green-mid);flex-shrink:0;margin-top:4px"></div><span style="color:var(--text2)"><strong style="color:var(--text)">Stock & créances</strong> — Sont-ils cohérents avec l'activité ?</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0;margin-top:4px"></div><span style="color:var(--text2)"><strong style="color:var(--text)">Endettement</strong> — La dette est-elle supportable ?</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:8px;height:8px;border-radius:50%;background:var(--green-dark);flex-shrink:0;margin-top:4px"></div><span style="color:var(--text2)"><strong style="color:var(--text)">Liquidité</strong> — Y a-t-il de la trésorerie disponible ?</span></div>
+    </div>
+  </div>
+
+  <button class="btn btn-next" onclick="switchTabByName('ex1')">Commencer l'exercice 1 →</button>
+</div>
+
+<!-- EXERCICE 1 -->
+<div id="pane-ex1" class="pane">
+  <div class="niveau n1">Niveau 1 — Classement</div>
+  <div class="section-title">Placez chaque poste dans le bon endroit du bilan</div>
+  <div class="section-sub">6 cases : Actif immobilisé / Actif circulant / Trésorerie / Capitaux propres / Dettes financières / Dettes d'exploitation</div>
+
+  <div class="instruction">
+    <span style="font-size:16px;flex-shrink:0">👆</span>
+    <span>Touchez une carte pour la sélectionner, puis touchez la colonne correspondante.</span>
+  </div>
+
+  <div class="section-label">Postes à classer</div>
+  <div class="op-bank" id="op-bank"></div>
+
+  <div class="section-label">Le bilan</div>
+  <div class="cat-cols" id="cat-cols"></div>
+
+  <div id="ex1-feedback"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetEx1()">↺ Recommencer</button>
+    <button class="btn btn-primary" onclick="checkEx1()">Vérifier</button>
+  </div>
+  <button class="btn btn-next" onclick="switchTabByName('ex2')">Exercice 2 →</button>
+</div>
+
+<!-- EXERCICE 2 -->
+<div id="pane-ex2" class="pane">
+  <div class="niveau n1">Niveau 1 — Identification</div>
+  <div class="section-title">Où chercher l'information dans le bilan ?</div>
+  <div class="section-sub">Une seule bonne réponse par question.</div>
+  <div id="qlist-n1"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetN1()">↺</button>
+    <button class="btn btn-primary" onclick="checkN1()">Vérifier niveau 1</button>
+  </div>
+
+  <div class="niveau n2" style="margin-top:8px">Niveau 2 — Analyse</div>
+  <div class="section-title">Qu'est-ce que ce chiffre signifie ?</div>
+  <div class="section-sub">Choisissez la meilleure interprétation.</div>
+  <div id="qlist-n2"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetN2()">↺</button>
+    <button class="btn btn-primary" onclick="checkN2()">Vérifier niveau 2</button>
+  </div>
+
+  <div class="niveau n3" style="margin-top:8px">Niveau 3 — Posture consultant</div>
+  <div class="section-title">Luc Darnand vous pose une question</div>
+  <div class="section-sub">Quelle est votre réponse ?</div>
+  <div id="qlist-n3"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetN3()">↺</button>
+    <button class="btn btn-primary" onclick="checkN3()">Vérifier niveau 3</button>
+  </div>
+  <button class="btn btn-next" style="margin-top:8px" onclick="switchTabByName('final')">Exercice final →</button>
+</div>
+
+<!-- EXERCICE FINAL -->
+<div id="pane-final" class="pane">
+  <div class="niveau n3">Exercice final — ~45 minutes</div>
+  <div class="section-title">Reconstituez le bilan de Métalux</div>
+  <div class="section-sub">À partir des données brutes, reconstituez l'actif, le passif, vérifiez l'équilibre et identifiez les 4 risques.</div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="donnees-card">
+    <div class="donnees-title">📋 Données brutes — Métalux 31/12/2023 (en k€)</div>
+    <div class="donnee-cat">Actif</div>
+    <div class="donnee-row"><span class="donnee-label">Immobilisations corporelles nettes</span><span class="donnee-value">620</span></div>
+    <div class="donnee-row"><span class="donnee-label">Immobilisations incorporelles</span><span class="donnee-value">15</span></div>
+    <div class="donnee-row"><span class="donnee-label">Stocks de matières</span><span class="donnee-value">480</span></div>
+    <div class="donnee-row"><span class="donnee-label">Créances clients</span><span class="donnee-value">412</span></div>
+    <div class="donnee-row"><span class="donnee-label">Autres créances</span><span class="donnee-value">48</span></div>
+    <div class="donnee-row"><span class="donnee-label">Disponibilités (banque)</span><span class="donnee-value">12</span></div>
+    <div class="donnee-cat">Passif</div>
+    <div class="donnee-row"><span class="donnee-label">Capital social</span><span class="donnee-value">150</span></div>
+    <div class="donnee-row"><span class="donnee-label">Réserves</span><span class="donnee-value">148</span></div>
+    <div class="donnee-row"><span class="donnee-label">Résultat de l'exercice (perte)</span><span class="donnee-value">−42</span></div>
+    <div class="donnee-row"><span class="donnee-label">Emprunts bancaires MLT</span><span class="donnee-value">580</span></div>
+    <div class="donnee-row"><span class="donnee-label">Concours bancaires (découvert)</span><span class="donnee-value">82</span></div>
+    <div class="donnee-row"><span class="donnee-label">Dettes fournisseurs</span><span class="donnee-value">318</span></div>
+    <div class="donnee-row"><span class="donnee-label">Dettes sociales, fiscales & autres</span><span class="donnee-value">351</span></div>
+  </div>
+
+  <!-- ÉTAPE 1 — ACTIF IMMOBILISÉ -->
+  <div class="sig-step" id="step1">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green)">1</div>
+      <div><div class="sig-step-title">Total actif immobilisé</div><div class="sig-step-formula">Immobilisations corporelles + incorporelles</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">620 + 15 =</div>
+        <input class="input-field" id="input1" type="number" placeholder="?" oninput="clearFeedback(1)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb1"></div>
+      <button class="step-check" onclick="checkStep(1)">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 — ACTIF CIRCULANT -->
+  <div class="sig-step locked" id="step2">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green-mid)">2</div>
+      <div><div class="sig-step-title">Total actif circulant</div><div class="sig-step-formula">Stocks + Créances clients + Autres créances</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">480 + 412 + 48 =</div>
+        <input class="input-field" id="input2" type="number" placeholder="?" oninput="clearFeedback(2)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb2"></div>
+      <button class="step-check" onclick="checkStep(2)">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 — TOTAL ACTIF -->
+  <div class="sig-step locked" id="step3">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--gold)">3</div>
+      <div><div class="sig-step-title">Total actif</div><div class="sig-step-formula">Actif immobilisé + Actif circulant + Disponibilités</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">635 + 940 + 12 =</div>
+        <input class="input-field" id="input3" type="number" placeholder="?" oninput="clearFeedback(3)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb3"></div>
+      <button class="step-check" onclick="checkStep(3)">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 — CAPITAUX PROPRES -->
+  <div class="sig-step locked" id="step4">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green-dark)">4</div>
+      <div><div class="sig-step-title">Total capitaux propres</div><div class="sig-step-formula">Capital + Réserves + Résultat N</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">150 + 148 − 42 =</div>
+        <input class="input-field" id="input4" type="number" placeholder="?" oninput="clearFeedback(4)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb4"></div>
+      <button class="step-check" onclick="checkStep(4)">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 5 — TOTAL PASSIF -->
+  <div class="sig-step locked" id="step5">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--gold)">5</div>
+      <div><div class="sig-step-title">Total passif</div><div class="sig-step-formula">CP + Dettes financières + Dettes d'exploitation</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">256 + 580 + 82 + 318 + 351 =</div>
+        <input class="input-field" id="input5" type="number" placeholder="?" oninput="clearFeedback(5)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb5"></div>
+      <button class="step-check" onclick="checkStep(5)">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 6 — ÉQUILIBRE -->
+  <div class="sig-step locked" id="step6">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green)">6</div>
+      <div><div class="sig-step-title">Vérification de l'équilibre</div><div class="sig-step-formula">Total actif = Total passif ?</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Total actif − Total passif =</div>
+        <input class="input-field" id="input6" type="number" placeholder="?" oninput="clearFeedback(6)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb6"></div>
+      <button class="step-check" onclick="checkStep(6)">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- IDENTIFICATION DES RISQUES -->
+  <div class="sig-step locked" id="step-risks">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--gold)">7</div>
+      <div><div class="sig-step-title">Identification des 4 risques</div><div class="sig-step-formula">Posture consultant — analysez le bilan de Métalux</div></div>
+    </div>
+    <div class="sig-step-body" id="risks-body"></div>
+  </div>
+
+  <div class="result-final" id="result-final">
+    <div class="result-final-title">🎉 Audit bilan terminé !</div>
+    <div class="result-score" id="final-score">7 / 7</div>
+    <div class="result-final-sub">Vous avez reconstitué le bilan de Métalux et identifié les 4 risques clés. Vous êtes prêt pour la séquence analyse financière de l'après-midi.</div>
+  </div>
+
+  <div style="height:20px"></div>
+</div>
+
+<script>
+const OPS=[
+  {id:0,label:"Machine CNC achetée en 2020",cat:'AI',fb:"Actif immobilisé — une machine = bien durable → classe 2."},
+  {id:1,label:"Profilés aluminium en stock",cat:'AC',fb:"Actif circulant — les stocks de matières → classe 3."},
+  {id:2,label:"Facture émise à Promobuild non encaissée",cat:'AC',fb:"Actif circulant — créance client = argent dû → classe 4."},
+  {id:3,label:"Argent disponible sur le compte bancaire",cat:'TR',fb:"Trésorerie — les disponibilités → classe 5."},
+  {id:4,label:"Capital apporté par les associés",cat:'CP',fb:"Capitaux propres — le capital social → classe 1."},
+  {id:5,label:"Emprunt bancaire sur 7 ans",cat:'DF',fb:"Dettes financières — emprunt MLT → classe 1."},
+  {id:6,label:"Facture fournisseur non encore payée",cat:'DE',fb:"Dettes d'exploitation — dette fournisseur → classe 4."},
+  {id:7,label:"Logiciel de gestion de production",cat:'AI',fb:"Actif immobilisé incorporel — un logiciel = bien durable immatériel."},
+  {id:8,label:"Bénéfices des années passées conservés",cat:'CP',fb:"Capitaux propres — les réserves = bénéfices mis de côté."},
+  {id:9,label:"Découvert bancaire utilisé",cat:'DF',fb:"Dettes financières court terme — le découvert = concours bancaire."},
+  {id:10,label:"Charges sociales dues mais non encore versées",cat:'DE',fb:"Dettes d'exploitation — dettes sociales → classe 4."},
+  {id:11,label:"Véhicule de pose acquis il y a 2 ans",cat:'AI',fb:"Actif immobilisé corporel — un véhicule = bien durable → classe 2."}
+];
+
+const CATS=[
+  {id:'AI',name:"Actif immobilisé",hint:"Biens durables",cls:'col-ai'},
+  {id:'AC',name:"Actif circulant",hint:"Stocks & créances",cls:'col-ac'},
+  {id:'TR',name:"Trésorerie",hint:"Banque & caisse",cls:'col-tr'},
+  {id:'CP',name:"Capitaux propres",hint:"Fonds propres",cls:'col-cp'},
+  {id:'DF',name:"Dettes financières",hint:"Emprunts & découvert",cls:'col-df'},
+  {id:'DE',name:"Dettes d'exploitation",hint:"Fournis. & charges",cls:'col-de'}
+];
+
+const BILAN_DOCS=['Actif immobilisé','Actif circulant','Capitaux propres','Dettes financières','Dettes d\'exploitation'];
+const BILAN_STYLE={
+  'Actif immobilisé':{bg:'#e8ede3',txt:'#4a5a3d',brd:'#a8c090'},
+  'Actif circulant':{bg:'#edf2e8',txt:'#4a5a3d',brd:'#b0c8a0'},
+  'Capitaux propres':{bg:'#f9eed8',txt:'#8a5a18',brd:'#e8c07a'},
+  'Dettes financières':{bg:'#FCEBEB',txt:'#791F1F',brd:'#F09595'},
+  "Dettes d'exploitation":{bg:'#f8f7f4',txt:'#5f5e5a',brd:'#e2e0d8'}
+};
+
+const QN1=[
+  {q:"Où trouver la valeur des machines de Métalux ?",ans:"Actif immobilisé",fb:"Les immobilisations corporelles nettes = actif immobilisé du bilan. Valeur brute − amortissements cumulés."},
+  {q:"Où voir combien Promobuild doit encore à Métalux ?",ans:"Actif circulant",fb:"Les créances clients = actif circulant. C'est l'argent que Métalux attend d'encaisser."},
+  {q:"Où trouver les emprunts bancaires de Métalux ?",ans:"Dettes financières",fb:"Les emprunts bancaires = dettes financières au passif du bilan."},
+  {q:"Où voir les bénéfices conservés depuis les années précédentes ?",ans:"Capitaux propres",fb:"Les réserves = capitaux propres. Ce sont les bénéfices passés mis de côté dans l'entreprise."}
+];
+
+const QN2=[
+  {q:"Les capitaux propres de Métalux représentent 16% du total bilan. Que faut-il en déduire ?",ans:"Actif immobilisé",fb:"16% est insuffisant — la norme est >30%. Métalux est très dépendante de ses dettes pour financer ses actifs. Fragilité structurelle."},
+  {q:"Le stock de Métalux est de 480 k€ pour un CA de 3 200 k€. Est-ce normal ?",ans:"Actif circulant",fb:"480 / 3 200 = 15% du CA en stock. C'est élevé pour ce secteur (~8% norme). Une partie est immobilisée inutilement — signal d'alerte."},
+  {q:"Le découvert bancaire est de 82 k€ et les disponibilités de 12 k€. Quelle est la trésorerie nette ?",ans:"Dettes financières",fb:"12 − 82 = −70 k€. La trésorerie nette est négative. L'entreprise dépend entièrement de sa banque pour fonctionner."}
+];
+
+const QN3=[
+  {q:'"Ma banque me demande si je peux rembourser mes emprunts. Comment je réponds ?"',ans:"Dettes financières",fb:"Comparez les dettes financières (662 k€) à l'EBE (98 k€). Ratio = 6,7 ans. La norme est 3 ans. La réponse honnête : la capacité de remboursement est insuffisante."},
+  {q:'"J\'ai l\'impression que mon stock coûte cher à l\'entreprise. Comment le mesurer ?"',ans:"Actif circulant",fb:"Stock / CA × 365 = durée de rotation en jours. 480 / 3 200 × 365 = ~55 jours. Norme : ~25 jours. Métalux a effectivement un stock trop long."},
+  {q:'"Est-ce que l\'entreprise appartient vraiment à ses associés ou surtout à ses banques ?"',ans:"Capitaux propres",fb:"CP / Total bilan = taux d'autonomie financière. Métalux : 256 / 1 587 = 16%. 84% du bilan est financé par des tiers (banques, fournisseurs). Les associés ne possèdent que 16%."}
+];
+
+const RISKS=[
+  {
+    num:1,title:"Risque de liquidité",color:"#A32D2D",
+    q:"Quel chiffre du bilan illustre le mieux le risque de liquidité de Métalux ?",
+    choices:[
+      {v:'a',text:"Les disponibilités à 12 k€ pour ~45 k€ de salaires mensuels",correct:true},
+      {v:'b',text:"Les emprunts bancaires à 580 k€"},
+      {v:'c',text:"Le résultat net négatif de −42 k€"}
+    ],
+    fb:"✓ Exact ! 12 k€ disponibles pour des salaires de ~45 k€/mois = moins d'une semaine de trésorerie. Un retard de paiement de Promobuild suffit à bloquer la paie."
+  },
+  {
+    num:2,title:"Risque de solvabilité",color:"#854F0B",
+    q:"Comment mesure-t-on le risque de solvabilité dans le bilan ?",
+    choices:[
+      {v:'a',text:"En comparant le stock aux ventes"},
+      {v:'b',text:"En comparant les capitaux propres au total bilan : 256 / 1 587 = 16%",correct:true},
+      {v:'c',text:"En regardant le montant du découvert bancaire"}
+    ],
+    fb:"✓ Exact ! Le taux d'autonomie financière = CP / Total bilan. Métalux à 16% est très en dessous de la norme (30%). Si les pertes continuent, les CP peuvent devenir négatifs."
+  },
+  {
+    num:3,title:"Risque de stock",color:"#6B7C5C",
+    q:"Que révèle un stock de 480 k€ pour un CA de 3 200 k€ ?",
+    choices:[
+      {v:'a',text:"Que Métalux est très bien approvisionnée"},
+      {v:'b',text:"Que le stock tourne trop vite"},
+      {v:'c',text:"Que 15% du CA est immobilisé en stock — avec risque de dépréciation",correct:true}
+    ],
+    fb:"✓ Exact ! 480 / 3 200 = 15% du CA en stock, soit ~55 jours de rotation vs 25j norme. Une partie des profilés est inutilisée depuis 8 mois — risque de perte de valeur."
+  },
+  {
+    num:4,title:"Risque client",color:"#8A9E78",
+    q:"Quel double risque représente Promobuild (38% du CA, paie à 75j) dans le bilan ?",
+    choices:[
+      {v:'a',text:"Risque de défaillance client + risque de trésorerie lié aux délais longs",correct:true},
+      {v:'b',text:"Uniquement un risque commercial"},
+      {v:'c',text:"Un risque négligeable car Promobuild est un grand groupe"}
+    ],
+    fb:"✓ Exact ! Double risque : si Promobuild fait défaut → 38% du CA s'évapore. Et même sans défaut, 75j de délai = 412 k€ de créances qui immobilisent de la trésorerie."
+  }
+];
+
+let selectedOpId=null,ex1Checked=false,s2correct=0,stepsCompleted=0,riskScores={};
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('pane-'+id).classList.add('on');
+  const sb=document.getElementById('score-bar');
+  if(id==='ex1'||id==='ex2'||id==='final'){sb.style.display='flex';}else{sb.style.display='none';}
+  updateScoreBar();
+}
+function switchTabByName(id){
+  const tabs=document.querySelectorAll('.tab');
+  const ids=['memo','ex1','ex2','final'];
+  tabs.forEach((t,i)=>{if(ids[i]===id)switchTab(id,t);});
+}
+function updateScoreBar(){
+  const total=stepsCompleted+s2correct+Object.values(riskScores).filter(v=>v).length;
+  document.getElementById('score-num').textContent=total;
+  document.getElementById('score-label').textContent='points accumulés';
+}
+
+function buildEx1(){
+  const bank=document.getElementById('op-bank');bank.innerHTML='';
+  OPS.forEach(op=>{
+    const d=document.createElement('div');d.className='op-card';d.dataset.id=op.id;d.textContent=op.label;
+    d.onclick=()=>selectOp(op.id,d);bank.appendChild(d);
+  });
+  const cols=document.getElementById('cat-cols');cols.innerHTML='';
+  CATS.forEach(cat=>{
+    const c=document.createElement('div');c.className='cat-col '+cat.cls;c.id='col-'+cat.id;
+    c.innerHTML='<div class="col-header"><div class="col-header-name">'+cat.name+'</div><div class="col-header-hint">'+cat.hint+'</div></div><div class="col-drop" id="drop-'+cat.id+'"></div>';
+    c.onclick=()=>dropInto(cat.id);cols.appendChild(c);
+  });
+}
+function selectOp(id,card){
+  if(card.classList.contains('placed'))return;
+  if(selectedOpId===id){selectedOpId=null;document.querySelectorAll('.op-card').forEach(c=>c.classList.remove('selected'));return;}
+  document.querySelectorAll('.op-card').forEach(c=>c.classList.remove('selected'));
+  selectedOpId=id;card.classList.add('selected');
+  document.querySelectorAll('.col-drop').forEach(d=>d.classList.add('highlight'));
+}
+function dropInto(colId){
+  if(selectedOpId===null)return;
+  const op=OPS.find(o=>o.id===selectedOpId);
+  const card=document.querySelector('.op-card[data-id="'+selectedOpId+'"]');
+  card.classList.add('placed');card.classList.remove('selected');selectedOpId=null;
+  document.querySelectorAll('.col-drop').forEach(d=>d.classList.remove('highlight'));
+  const tag=document.createElement('div');tag.className='placed-tag pending';
+  tag.dataset.id=op.id;tag.dataset.col=colId;tag.textContent=op.label;
+  tag.onclick=()=>unplace(op.id,colId,tag);
+  document.getElementById('drop-'+colId).appendChild(tag);
+}
+function unplace(id,colId,el){
+  if(ex1Checked)return;el.remove();
+  document.querySelector('.op-card[data-id="'+id+'"]').classList.remove('placed');
+}
+function checkEx1(){
+  ex1Checked=true;let ok=0,ko=0;
+  document.querySelectorAll('.placed-tag').forEach(tag=>{
+    const op=OPS.find(o=>o.id==tag.dataset.id);
+    if(tag.dataset.col===op.cat){tag.className='placed-tag correct';ok++;}
+    else{tag.className='placed-tag wrong';ko++;}
+    tag.onclick=null;
+  });
+  const fb=document.getElementById('ex1-feedback');
+  if(ko===0&&ok===12){fb.innerHTML='<div class="feedback ok">✓ Parfait ! Les 12 postes sont correctement placés dans le bilan.</div>';}
+  else if(ko===0){fb.innerHTML='<div class="feedback info">Toutes les cartes placées sont correctes. Il en reste '+(12-ok)+' à placer.</div>';}
+  else{
+    let hints='';
+    document.querySelectorAll('.placed-tag.wrong').forEach(tag=>{
+      const op=OPS.find(o=>o.id==tag.dataset.id);hints+='<div style="margin-bottom:4px">• '+op.fb+'</div>';
+    });
+    fb.innerHTML='<div class="feedback ko">'+ko+' erreur(s).<br><br>'+hints+'</div>';
+  }
+}
+function resetEx1(){
+  ex1Checked=false;selectedOpId=null;
+  document.getElementById('ex1-feedback').innerHTML='';buildEx1();
+}
+
+function buildQlist(qs,containerId,multi,prefix){
+  const c=document.getElementById(containerId);c.innerHTML='';
+  qs.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    BILAN_DOCS.forEach(d=>{
+      const s=BILAN_STYLE[d];
+      btns+='<button class="doc-btn" data-doc="'+d+'" style="background:'+s.bg+';color:'+s.txt+';border-color:'+s.brd+'" onclick="toggleDoc(this,\''+prefix+'\','+i+','+multi+')">'+d+'</button>';
+    });
+    card.innerHTML='<div class="q-header"><div class="q-num">'+(i+1)+'</div><div class="q-text">'+q.q+'</div></div><div class="q-choices" id="'+prefix+'-c-'+i+'">'+btns+'</div><div class="q-feedback" id="'+prefix+'-f-'+i+'"></div>';
+    c.appendChild(card);
+  });
+}
+function toggleDoc(btn,prefix,idx,multi){
+  const choices=btn.parentElement.querySelectorAll('.doc-btn');
+  if(multi){btn.classList.toggle('selected');btn.style.borderWidth=btn.classList.contains('selected')?'2px':'1.5px';}
+  else{choices.forEach(b=>{b.classList.remove('selected');b.style.borderWidth='1.5px';});btn.classList.add('selected');btn.style.borderWidth='2px';}
+}
+function checkQlist(qs,prefix,multi){
+  let correct=0;
+  qs.forEach((q,i)=>{
+    const choices=document.querySelectorAll('#'+prefix+'-c-'+i+' .doc-btn');
+    const fb=document.getElementById(prefix+'-f-'+i);
+    const expected=Array.isArray(q.ans)?q.ans:[q.ans];
+    let hasWrong=false;
+    choices.forEach(btn=>{
+      const sel=btn.classList.contains('selected');const isOk=expected.includes(btn.dataset.doc);
+      btn.classList.remove('selected');btn.style.borderWidth='1.5px';
+      if(isOk){btn.classList.add('correct');btn.style.borderWidth='2px';}
+      else if(sel&&!isOk){btn.classList.add('wrong');btn.style.borderWidth='2px';hasWrong=true;}
+      else{btn.classList.add('dimmed');}
+    });
+    if(!hasWrong){correct++;fb.className='q-feedback show ok';fb.innerHTML='✓ '+q.fb;}
+    else{fb.className='q-feedback show ko';fb.innerHTML='✗ '+q.fb;}
+  });
+  s2correct=document.querySelectorAll('#qlist-n1 .q-feedback.show.ok, #qlist-n2 .q-feedback.show.ok, #qlist-n3 .q-feedback.show.ok').length;
+  updateScoreBar();
+}
+function resetN1(){buildQlist(QN1,'qlist-n1',false,'qn1');}
+function resetN2(){buildQlist(QN2,'qlist-n2',false,'qn2');}
+function resetN3(){buildQlist(QN3,'qlist-n3',false,'qn3');}
+function checkN1(){checkQlist(QN1,'qn1',false);}
+function checkN2(){checkQlist(QN2,'qn2',false);}
+function checkN3(){checkQlist(QN3,'qn3',false);}
+
+const STEPS_FINAL={
+  1:{val:635,fb:'✓ Actif immobilisé = 635 k€. Machine CNC, véhicules, aménagements — la valeur nette après amortissements.',next:2},
+  2:{val:940,fb:'✓ Actif circulant = 940 k€. Attention : 480 k€ de stock + 412 k€ de créances = 59% du bilan. Signal d\'alerte.',next:3},
+  3:{val:1587,fb:'✓ Total actif = 1 587 k€. 635 + 940 + 12 = 1 587. On vérifie maintenant le passif.',next:4},
+  4:{val:256,fb:'✓ Capitaux propres = 256 k€. La perte de −42 k€ vient réduire les 298 k€ de capital + réserves.',next:5},
+  5:{val:1587,fb:'✓ Total passif = 1 587 k€. 256 + 662 + 669 = 1 587. Le bilan est équilibré !',next:6},
+  6:{val:0,fb:'✓ Actif − Passif = 0. Le bilan est parfaitement équilibré. Actif = Passif, toujours.',next:'risks'}
+};
+
+function clearFeedback(step){
+  document.getElementById('fb'+step).className='step-feedback';
+  document.querySelectorAll('#step'+step+' .input-field').forEach(i=>{i.classList.remove('correct','wrong');});
+}
+function checkStep(step){
+  const s=STEPS_FINAL[step];
+  const input=document.getElementById('input'+step);
+  const val=parseFloat(input.value);
+  const fb=document.getElementById('fb'+step);
+  if(Math.abs(val-s.val)<=1){
+    input.classList.add('correct');fb.className='step-feedback show ok';fb.innerHTML=s.fb;
+    stepsCompleted++;updateScoreBar();updateProgress();
+    setTimeout(()=>{
+      if(s.next==='risks'){buildRisks();document.getElementById('step-risks').classList.remove('locked');}
+      else{const next=document.getElementById('step'+s.next);if(next)next.classList.remove('locked');}
+    },800);
+  }else{
+    input.classList.add('wrong');fb.className='step-feedback show ko';
+    fb.innerHTML='✗ Pas tout à fait. Reprenez le calcul avec les données brutes.';
+  }
+}
+function updateProgress(){
+  const total=6+RISKS.length;
+  const done=stepsCompleted+Object.values(riskScores).filter(v=>v).length;
+  document.getElementById('progress-fill').style.width=Math.round(done/total*100)+'%';
+}
+
+function buildRisks(){
+  const body=document.getElementById('risks-body');body.innerHTML='';
+  RISKS.forEach(risk=>{
+    const block=document.createElement('div');block.className='risk-block';block.id='risk-'+risk.num;
+    let btns='';
+    risk.choices.forEach(ch=>{
+      btns+='<button class="risk-btn" data-val="'+ch.v+'" onclick="selectRisk('+risk.num+',\''+ch.v+'\')">'+ch.text+'</button>';
+    });
+    block.innerHTML='<div class="risk-header"><div class="risk-num" style="background:'+risk.color+'">'+risk.num+'</div><div class="sig-step-title">'+risk.title+'</div></div><div class="risk-body"><div class="risk-q">'+risk.q+'</div><div class="risk-choices" id="risk-choices-'+risk.num+'">'+btns+'</div><div class="risk-feedback" id="risk-fb-'+risk.num+'"></div><button class="risk-check" onclick="checkRisk('+risk.num+')">Valider</button></div>';
+    body.appendChild(block);
+  });
+}
+function selectRisk(num,val){
+  document.querySelectorAll('#risk-choices-'+num+' .risk-btn').forEach(b=>{b.classList.toggle('selected',b.dataset.val===val);});
+}
+function checkRisk(num){
+  const risk=RISKS.find(r=>r.num===num);
+  const selected=document.querySelector('#risk-choices-'+num+' .risk-btn.selected');
+  const fb=document.getElementById('risk-fb-'+num);
+  if(!selected){fb.className='risk-feedback show ko';fb.innerHTML='Sélectionnez une réponse.';return;}
+  const correctChoice=risk.choices.find(c=>c.correct);
+  document.querySelectorAll('#risk-choices-'+num+' .risk-btn').forEach(b=>{
+    b.classList.remove('selected');
+    if(b.dataset.val===correctChoice.v)b.classList.add('correct');
+    else if(b===selected&&b.dataset.val!==correctChoice.v)b.classList.add('wrong');
+    else b.classList.add('dimmed');
+  });
+  const isOk=selected.dataset.val===correctChoice.v;
+  riskScores[num]=isOk;
+  if(isOk){fb.className='risk-feedback show ok';fb.innerHTML=risk.fb;}
+  else{fb.className='risk-feedback show ko';fb.innerHTML='✗ '+risk.fb;}
+  stepsCompleted+=isOk?0:0;// already counted
+  updateScoreBar();updateProgress();
+  const allDone=RISKS.every(r=>riskScores[r.num]!==undefined);
+  if(allDone)setTimeout(showFinal,800);
+}
+function showFinal(){
+  const f=document.getElementById('result-final');f.classList.add('show');
+  const total=stepsCompleted+s2correct+Object.values(riskScores).filter(v=>v).length;
+  document.getElementById('final-score').textContent=total+' / '+(6+QN1.length+QN2.length+QN3.length+RISKS.length);
+  f.scrollIntoView({behavior:'smooth'});
+}
+
+buildEx1();
+buildQlist(QN1,'qlist-n1',false,'qn1');
+buildQlist(QN2,'qlist-n2',false,'qn2');
+buildQlist(QN3,'qlist-n3',false,'qn3');
+</script>
+</body>
+</html>

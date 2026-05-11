@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#6B7C5C">
+<title>Métalux — Identifier les risques financiers</title>
+<style>
+:root{
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;--green-dark:#4a5a3d;
+  --gold:#C17F24;--gold-light:#f9eed8;--gold-dark:#8a5a18;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:40px}
+
+.app-header{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:2px}
+.app-header p{font-size:12px;color:rgba(255,255,255,.65)}
+.tab-bar{display:flex;gap:0;padding:0;border-top:1px solid rgba(255,255,255,.15);overflow-x:auto;scrollbar-width:none;margin-top:10px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+
+.score-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px}
+.score-num{font-size:20px;font-weight:700;color:var(--green)}
+.score-label{color:var(--text2);flex:1}
+.score-pct{font-size:12px;font-weight:600;color:var(--text3)}
+
+.pane{display:none;padding:16px 16px 0}
+.pane.on{display:block}
+
+.section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+.niveau{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;margin-bottom:12px}
+.n1{background:#EAF3DE;color:#27500A}
+.n2{background:var(--gold-light);color:var(--gold-dark)}
+.n3{background:var(--red-light);color:var(--red)}
+
+/* MÉMO */
+.risk-memo-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.risk-memo{border-radius:var(--radius-lg);overflow:hidden}
+.risk-memo-header{padding:11px 14px;display:flex;align-items:center;justify-content:space-between}
+.risk-memo-name{font-size:14px;font-weight:700;color:#fff}
+.risk-memo-q{font-size:11px;color:rgba(255,255,255,.75);margin-top:2px}
+.risk-memo-body{background:var(--bg);padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px}
+.risk-tag{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500}
+
+.r-liq .risk-memo-header{background:var(--red)}.r-liq .risk-tag{background:var(--red-light);color:#791F1F}
+.r-sol .risk-memo-header{background:#854F0B}.r-sol .risk-tag{background:var(--gold-light);color:var(--gold-dark)}
+.r-exp .risk-memo-header{background:var(--green)}.r-exp .risk-tag{background:var(--green-light);color:var(--green-dark)}
+.r-dep .risk-memo-header{background:var(--green-mid)}.r-dep .risk-tag{background:var(--green-light);color:var(--green-dark)}
+
+/* QCM */
+.q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.q-header{padding:13px 14px;display:flex;align-items:flex-start;gap:10px}
+.q-num{width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.q-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.q-choices{display:flex;flex-direction:column;gap:8px;padding:0 14px 13px}
+.q-btn{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--text);transition:all .15s;text-align:left;line-height:1.3}
+.q-btn.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark)}
+.q-btn.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none;border-width:2px}
+.q-btn.wrong{border-color:var(--red);background:var(--red-light);color:#791F1F;pointer-events:none;border-width:2px}
+.q-btn.dimmed{opacity:.35;pointer-events:none}
+.q-feedback{padding:8px 14px 12px;font-size:12px;line-height:1.5;display:none}
+.q-feedback.show.ok{display:block;color:#27500A}
+.q-feedback.show.ko{display:block;color:#791F1F}
+
+.btn-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.btn{padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid;min-height:46px;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--green);color:#fff;border-color:var(--green);flex:1}
+.btn-secondary{background:var(--bg);color:var(--text2);border-color:var(--border)}
+.btn-next{background:var(--green);color:#fff;border-color:var(--green);width:100%;margin-bottom:20px}
+
+.result-final{background:var(--green);border-radius:var(--radius-lg);padding:20px;text-align:center;margin-bottom:20px;display:none}
+.result-final.show{display:block}
+.result-final-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
+.result-score{font-size:36px;font-weight:800;color:var(--gold);margin:12px 0}
+.result-final-sub{font-size:14px;color:rgba(255,255,255,.8);line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Métalux — Les risques financiers</h1>
+  <p>Identifier · Évaluer · Prioriser</p>
+  <div class="tab-bar">
+    <button class="tab on" onclick="switchTab('memo',this)">Mémo</button>
+    <button class="tab" onclick="switchTab('n1',this)">Niveau 1 · Identifier</button>
+    <button class="tab" onclick="switchTab('n2',this)">Niveau 2 · Évaluer</button>
+    <button class="tab" onclick="switchTab('n3',this)">Niveau 3 · Agir</button>
+  </div>
+</div>
+
+<div class="score-bar" id="score-bar" style="display:none">
+  <span class="score-num" id="score-num">0</span>
+  <span class="score-label" id="score-label">réponses correctes</span>
+  <span class="score-pct" id="score-pct"></span>
+</div>
+
+<!-- MÉMO -->
+<div id="pane-memo" class="pane on">
+  <div class="section-title">Les 4 familles de risques — signaux clés</div>
+  <div class="section-sub">Gardez ces repères en tête pour identifier rapidement le type de risque.</div>
+
+  <div class="risk-memo-cards">
+    <div class="risk-memo r-liq">
+      <div class="risk-memo-header">
+        <div><div class="risk-memo-name">🚨 Risque de liquidité</div><div class="risk-memo-q">L'entreprise peut-elle payer à court terme ?</div></div>
+      </div>
+      <div class="risk-memo-body">
+        <span class="risk-tag">Trésorerie négative</span>
+        <span class="risk-tag">Découvert permanent</span>
+        <span class="risk-tag">BFR > FR</span>
+        <span class="risk-tag">Métalux : −70 k€</span>
+      </div>
+    </div>
+    <div class="risk-memo r-sol">
+      <div class="risk-memo-header">
+        <div><div class="risk-memo-name">⚠ Risque de solvabilité</div><div class="risk-memo-q">L'entreprise peut-elle faire face à ses dettes longues ?</div></div>
+      </div>
+      <div class="risk-memo-body">
+        <span class="risk-tag">CP < 30% du bilan</span>
+        <span class="risk-tag">Dette/EBE > 3 ans</span>
+        <span class="risk-tag">Pertes répétées</span>
+        <span class="risk-tag">Métalux : 16% · x6,7</span>
+      </div>
+    </div>
+    <div class="risk-memo r-exp">
+      <div class="risk-memo-header">
+        <div><div class="risk-memo-name">📉 Risque d'exploitation</div><div class="risk-memo-q">L'activité est-elle rentable ?</div></div>
+      </div>
+      <div class="risk-memo-body">
+        <span class="risk-tag">Marge brute < norme</span>
+        <span class="risk-tag">EBE < 8%</span>
+        <span class="risk-tag">CA en baisse</span>
+        <span class="risk-tag">Métalux : 34,4% · 3,1%</span>
+      </div>
+    </div>
+    <div class="risk-memo r-dep">
+      <div class="risk-memo-header">
+        <div><div class="risk-memo-name">👤 Risque de dépendance</div><div class="risk-memo-q">L'entreprise est-elle trop exposée à un acteur ?</div></div>
+      </div>
+      <div class="risk-memo-body">
+        <span class="risk-tag">Client > 30% CA</span>
+        <span class="risk-tag">Fournisseur unique</span>
+        <span class="risk-tag">Dirigeant seul</span>
+        <span class="risk-tag">Métalux : Promobuild 38%</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-next" onclick="switchTabByName('n1')">Commencer le niveau 1 →</button>
+</div>
+
+<!-- NIVEAU 1 -->
+<div id="pane-n1" class="pane">
+  <div class="niveau n1">Niveau 1 — Identifier le type de risque</div>
+  <div class="section-title">Pour chaque situation, quel risque est en cause ?</div>
+  <div class="section-sub">Une seule bonne réponse par question.</div>
+  <div id="qlist-n1"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetN('n1','qlist-n1',QN1,false)">↺</button>
+    <button class="btn btn-primary" onclick="checkN('n1','qlist-n1',QN1)">Vérifier</button>
+  </div>
+  <button class="btn btn-next" onclick="switchTabByName('n2')">Niveau 2 →</button>
+</div>
+
+<!-- NIVEAU 2 -->
+<div id="pane-n2" class="pane">
+  <div class="niveau n2">Niveau 2 — Évaluer la criticité</div>
+  <div class="section-title">Pour chaque risque Métalux, quelle est la bonne évaluation ?</div>
+  <div class="section-sub">Critique / Élevé / Modéré — justifiez avec les chiffres.</div>
+  <div id="qlist-n2"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetN('n2','qlist-n2',QN2,false)">↺</button>
+    <button class="btn btn-primary" onclick="checkN('n2','qlist-n2',QN2)">Vérifier</button>
+  </div>
+  <button class="btn btn-next" onclick="switchTabByName('n3')">Niveau 3 →</button>
+</div>
+
+<!-- NIVEAU 3 -->
+<div id="pane-n3" class="pane">
+  <div class="niveau n3">Niveau 3 — Proposer et prioriser les actions</div>
+  <div class="section-title">Luc vous demande un plan d'action</div>
+  <div class="section-sub">Pour chaque risque, choisissez l'action corrective la plus pertinente et la mieux priorisée.</div>
+  <div id="qlist-n3"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetN('n3','qlist-n3',QN3,false)">↺</button>
+    <button class="btn btn-primary" onclick="checkN('n3','qlist-n3',QN3)">Vérifier</button>
+  </div>
+  <div class="result-final" id="result-final">
+    <div class="result-final-title">🎉 Diagnostic Métalux maîtrisé !</div>
+    <div class="result-score" id="final-score">0 / 0</div>
+    <div class="result-final-sub">Vous savez identifier, évaluer et prioriser les risques financiers. Vous êtes prêt pour l'atelier final de diagnostic complet.</div>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<script>
+let scores={n1:0,n2:0,n3:0};
+
+const QN1=[
+  {
+    q:"Métalux a 12 k€ en banque et doit payer 45 k€ de salaires dans 5 jours. Quel risque ?",
+    choices:[{v:'a',text:"Risque de solvabilité"},{v:'b',text:"Risque de liquidité",correct:true},{v:'c',text:"Risque d'exploitation"}],
+    fb:"✓ Risque de liquidité — incapacité à payer une dette à court terme (salaires). La trésorerie disponible est insuffisante pour faire face à l'échéance immédiate."
+  },
+  {
+    q:"Les capitaux propres de Métalux représentent 16% du bilan et le ratio Dette/EBE est de 6,7 ans. Quel risque ?",
+    choices:[{v:'a',text:"Risque de dépendance"},{v:'b',text:"Risque de liquidité"},{v:'c',text:"Risque de solvabilité",correct:true}],
+    fb:"✓ Risque de solvabilité — structure financière fragile à long terme. CP trop faibles et dette disproportionnée face à la capacité de remboursement (EBE)."
+  },
+  {
+    q:"La marge brute de Métalux passe de 42% à 34,4% en 2 ans sans que les prix de vente aient été ajustés. Quel risque ?",
+    choices:[{v:'a',text:"Risque d'exploitation",correct:true},{v:'b',text:"Risque de dépendance"},{v:'c',text:"Risque de solvabilité"}],
+    fb:"✓ Risque d'exploitation — érosion de la rentabilité opérationnelle. Le modèle économique ne génère plus assez de valeur pour couvrir les charges."
+  },
+  {
+    q:"Promobuild représente 38% du CA de Métalux et paie à 75 jours. Quel risque principal ?",
+    choices:[{v:'a',text:"Risque de liquidité"},{v:'b',text:"Risque de dépendance",correct:true},{v:'c',text:"Risque d'exploitation"}],
+    fb:"✓ Risque de dépendance — concentration excessive sur un client. Sa défaillance ou son retard met directement en péril la survie de Métalux."
+  },
+  {
+    q:"AluFrance est le seul fournisseur de profilés alu de Métalux. Il annonce une hausse tarifaire de 15%. Quel risque ?",
+    choices:[{v:'a',text:"Risque de dépendance",correct:true},{v:'b',text:"Risque d'exploitation"},{v:'c',text:"Risque de liquidité"}],
+    fb:"✓ Risque de dépendance fournisseur — Métalux ne peut pas refuser ni négocier. La hausse se répercute directement sur la marge brute déjà fragilisée."
+  },
+  {
+    q:"Le CA de Métalux baisse de 13% mais les charges fixes (loyer, salaires) restent stables. Quel risque ?",
+    choices:[{v:'a',text:"Risque de solvabilité"},{v:'b',text:"Risque d'exploitation",correct:true},{v:'c',text:"Risque de dépendance"}],
+    fb:"✓ Risque d'exploitation — effet ciseaux. Les charges fixes ne baissent pas avec le CA, ce qui comprime mécaniquement l'EBE et le résultat."
+  },
+  {
+    q:"Métalux a un découvert de 82 k€ utilisé en permanence. Sa banque menace de le supprimer. Quel risque ?",
+    choices:[{v:'a',text:"Risque de liquidité",correct:true},{v:'b',text:"Risque de solvabilité"},{v:'c',text:"Risque d'exploitation"}],
+    fb:"✓ Risque de liquidité — la suppression du découvert mettrait Métalux en cessation de paiement immédiate. La trésorerie nette est de −70 k€."
+  },
+  {
+    q:"Luc Darnand est le seul dirigeant de Métalux sans adjoint identifié. Quel risque ?",
+    choices:[{v:'a',text:"Risque d'exploitation"},{v:'b',text:"Risque de liquidité"},{v:'c',text:"Risque de dépendance",correct:true}],
+    fb:"✓ Risque de dépendance homme-clé — absence ou accident du dirigeant = paralysie opérationnelle. C'est un risque souvent sous-estimé dans les PME."
+  }
+];
+
+const QN2=[
+  {
+    q:"Risque de liquidité — Comment évaluer sa criticité chez Métalux ?",
+    choices:[
+      {v:'a',text:"Modéré — le découvert couvre les besoins"},
+      {v:'b',text:"Élevé — la trésorerie est négative mais l'entreprise fonctionne"},
+      {v:'c',text:"Critique — 12 k€ de tréso pour 45 k€ de salaires · 1 retard = cessation de paiement",correct:true}
+    ],
+    fb:"✓ Critique. Un seul événement (retard Promobuild, suppression découvert) suffit à déclencher une crise de paiement. Zéro marge de manœuvre."
+  },
+  {
+    q:"Risque de solvabilité — Comment évaluer sa criticité chez Métalux ?",
+    choices:[
+      {v:'a',text:"Critique — les CP sont déjà négatifs"},
+      {v:'b',text:"Élevé — CP à 16% et Dette/EBE à 6,7 ans — structure fragile mais pas encore en rupture",correct:true},
+      {v:'c',text:"Modéré — l'entreprise rembourse ses emprunts régulièrement"}
+    ],
+    fb:"✓ Élevé. Pas encore critique (les CP sont positifs) mais la trajectoire est mauvaise. Si les pertes continuent, les CP seront négatifs dans 3 ans."
+  },
+  {
+    q:"Risque d'exploitation — Comment évaluer sa criticité chez Métalux ?",
+    choices:[
+      {v:'a',text:"Modéré — l'entreprise vend encore"},
+      {v:'b',text:"Critique — marge 34,4% · EBE 3,1% · CA −13% · 1ère perte en 5 ans — tout se dégrade",correct:true},
+      {v:'c',text:"Élevé — la marge baisse mais le REX est encore positif"}
+    ],
+    fb:"✓ Critique. La cause racine de tous les autres problèmes. Sans restauration de la marge brute, aucune autre mesure ne sera suffisante."
+  },
+  {
+    q:"Risque de dépendance client — Comment évaluer sa criticité chez Métalux ?",
+    choices:[
+      {v:'a',text:"Modéré — Promobuild est un grand groupe fiable"},
+      {v:'b',text:"Critique — 38% du CA sur un seul client + délai 75j = double exposition fatale",correct:true},
+      {v:'c',text:"Élevé — concentration importante mais gérable"}
+    ],
+    fb:"✓ Critique. Défaillance Promobuild = perte de 38% du CA + 412 k€ de créances irrécouvrables = liquidation quasi certaine pour Métalux."
+  }
+];
+
+const QN3=[
+  {
+    q:"Action prioritaire contre le risque de liquidité — laquelle choisir en premier ?",
+    choices:[
+      {v:'a',text:"Contracter un nouvel emprunt pour reconstituer la trésorerie"},
+      {v:'b',text:"Vendre les stocks inutilisés depuis 8 mois + négocier délais Promobuild → libérer ~250 k€ de cash",correct:true},
+      {v:'c',text:"Réduire les salaires pour diminuer les décaissements"}
+    ],
+    fb:"✓ Agir sur le BFR est la seule action sans coût financier supplémentaire. Stock → cash immédiat. Délais clients → cash en 30 jours. Un emprunt supplémentaire aggraverait la solvabilité."
+  },
+  {
+    q:"Action prioritaire contre le risque d'exploitation — laquelle choisir en premier ?",
+    choices:[
+      {v:'a',text:"Réduire les charges de personnel pour améliorer l'EBE"},
+      {v:'b',text:"Réviser les prix de vente à la hausse pour restaurer la marge brute — cause racine",correct:true},
+      {v:'c',text:"Chercher de nouveaux marchés pour augmenter le CA"}
+    ],
+    fb:"✓ La marge brute à 34,4% est la cause racine. +5 pts = +160 k€ d'EBE. Sans répercussion de la hausse des matières sur les prix, tout le reste est inefficace."
+  },
+  {
+    q:"Action prioritaire contre le risque de dépendance client — laquelle choisir ?",
+    choices:[
+      {v:'a',text:"Augmenter les ventes à Promobuild pour maximiser le CA"},
+      {v:'b',text:"Prospecter activement de nouveaux clients pour ramener Promobuild sous 25% du CA",correct:true},
+      {v:'c',text:"Négocier un contrat d'exclusivité avec Promobuild pour sécuriser le CA"}
+    ],
+    fb:"✓ L'objectif est de diluer la dépendance. Promobuild < 25% = risque acceptable. Un contrat d'exclusivité augmenterait encore la dépendance au lieu de la réduire."
+  },
+  {
+    q:"Pour prioriser les 4 actions correctives, dans quel ordre les présenter à Luc ?",
+    choices:[
+      {v:'a',text:"Solvabilité → Liquidité → Exploitation → Dépendance"},
+      {v:'b',text:"Exploitation (marge) → Liquidité (BFR) → Dépendance → Solvabilité",correct:true},
+      {v:'c',text:"Dépendance → Solvabilité → Liquidité → Exploitation"}
+    ],
+    fb:"✓ La bonne priorité : 1) Restaurer la marge (cause racine) · 2) Libérer du cash (urgence) · 3) Diversifier les clients (moyen terme) · 4) Renforcer les CP (long terme). On traite les causes avant les conséquences."
+  }
+];
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('pane-'+id).classList.add('on');
+  document.getElementById('score-bar').style.display=id==='memo'?'none':'flex';
+  updateScore();
+}
+function switchTabByName(id){
+  const ids=['memo','n1','n2','n3'];
+  document.querySelectorAll('.tab').forEach((t,i)=>{if(ids[i]===id)switchTab(id,t);});
+}
+function updateScore(){
+  const total=scores.n1+scores.n2+scores.n3;
+  const max=QN1.length+QN2.length+QN3.length;
+  document.getElementById('score-num').textContent=total;
+  document.getElementById('score-label').textContent='/ '+max+' réponses correctes';
+  document.getElementById('score-pct').textContent=Math.round(total/max*100)+'%';
+}
+
+function buildQlist(qs,containerId){
+  const c=document.getElementById(containerId);c.innerHTML='';
+  qs.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    q.choices.forEach(ch=>{
+      btns+='<button class="q-btn" data-val="'+ch.v+'" onclick="selectQ(\''+containerId+'\','+i+',\''+ch.v+'\')">'+ch.text+'</button>';
+    });
+    card.innerHTML='<div class="q-header"><div class="q-num">'+(i+1)+'</div><div class="q-text">'+q.q+'</div></div><div class="q-choices" id="'+containerId+'-c-'+i+'">'+btns+'</div><div class="q-feedback" id="'+containerId+'-f-'+i+'"></div>';
+    c.appendChild(card);
+  });
+}
+function selectQ(container,idx,val){
+  document.querySelectorAll('#'+container+'-c-'+idx+' .q-btn').forEach(b=>b.classList.toggle('selected',b.dataset.val===val));
+}
+function checkN(scoreKey,containerId,qs){
+  let correct=0;
+  qs.forEach((q,i)=>{
+    const selected=document.querySelector('#'+containerId+'-c-'+i+' .q-btn.selected');
+    const fb=document.getElementById(containerId+'-f-'+i);
+    const correctChoice=q.choices.find(c=>c.correct);
+    document.querySelectorAll('#'+containerId+'-c-'+i+' .q-btn').forEach(b=>{
+      b.classList.remove('selected');
+      if(b.dataset.val===correctChoice.v)b.classList.add('correct');
+      else if(selected&&b===selected)b.classList.add('wrong');
+      else b.classList.add('dimmed');
+    });
+    if(selected&&selected.dataset.val===correctChoice.v){correct++;fb.className='q-feedback show ok';fb.innerHTML=q.fb;}
+    else{fb.className='q-feedback show ko';fb.innerHTML='✗ '+q.fb;}
+  });
+  scores[scoreKey]=correct;
+  updateScore();
+  if(scoreKey==='n3'){
+    setTimeout(()=>{
+      const f=document.getElementById('result-final');f.classList.add('show');
+      const total=scores.n1+scores.n2+scores.n3;
+      const max=QN1.length+QN2.length+QN3.length;
+      document.getElementById('final-score').textContent=total+' / '+max;
+      f.scrollIntoView({behavior:'smooth'});
+    },600);
+  }
+}
+function resetN(scoreKey,containerId,qs){
+  scores[scoreKey]=0;buildQlist(qs,containerId);updateScore();
+}
+
+buildQlist(QN1,'qlist-n1');
+buildQlist(QN2,'qlist-n2');
+buildQlist(QN3,'qlist-n3');
+</script>
+</body>
+</html>

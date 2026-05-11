@@ -3,16 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#185FA5">
+<meta name="theme-color" content="#6B7C5C">
 <title>Métalux — Formation comptabilité</title>
 <style>
 :root{
-  --blue:#185FA5;--blue-light:#E6F1FB;--blue-dark:#0C447C;
-  --green:#3B6D11;--green-light:#EAF3DE;--green-dark:#27500A;
-  --amber:#854F0B;--amber-light:#FAEEDA;--amber-dark:#633806;
-  --red:#A32D2D;--red-light:#FCEBEB;--red-dark:#791F1F;
-  --teal:#0F6E56;--teal-light:#E1F5EE;--teal-dark:#085041;
-  --gray:#5F5E5A;--gray-light:#F1EFE8;
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;
+  --gold:#C17F24;--gold-light:#f9eed8;
   --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
   --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
   --radius:10px;--radius-lg:14px;
@@ -20,90 +16,62 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:48px}
 
-/* HEADER */
-.header{background:var(--blue);padding:28px 20px 24px}
-.header-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.logo-mark{width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center}
-.logo-mark svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.header h1{font-size:20px;font-weight:700;color:#fff;margin-bottom:3px}
+.header{background:var(--green);padding:28px 20px 24px}
+.header h1{font-size:22px;font-weight:700;color:#fff;margin-bottom:3px}
 .header-sub{font-size:13px;color:rgba(255,255,255,.65)}
 .header-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .meta-chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 12px;font-size:12px;color:rgba(255,255,255,.85)}
 
-/* PROGRESS */
 .progress-section{background:var(--bg);border-bottom:1px solid var(--border);padding:14px 20px}
 .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .progress-label{font-size:12px;color:var(--text2);font-weight:500}
 .progress-count{font-size:12px;color:var(--text3)}
 .progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
-.progress-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .4s ease}
+.progress-fill{height:100%;background:var(--green);border-radius:3px}
 
-/* SÉQUENCES */
 .content{padding:16px}
 .seq-block{margin-bottom:20px}
 .seq-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px;padding:0 2px}
 
-/* CARTES EXERCICES */
 .exo-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:8px;text-decoration:none;display:block;transition:transform .15s}
 .exo-card:active{transform:scale(.98)}
-.exo-card.available{border-color:var(--border)}
-.exo-card.locked{opacity:.55;pointer-events:none}
+.exo-card.locked{opacity:.5;pointer-events:none}
 
-.card-inner{display:flex;align-items:center;gap:0}
-.card-num{width:54px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 0;border-right:1px solid var(--border)}
+.card-inner{display:flex;align-items:center}
+.card-num{width:58px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 0;border-right:1px solid var(--border)}
 .card-num-val{font-size:22px;font-weight:700;line-height:1}
 .card-num-label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
-
 .card-body{flex:1;padding:13px 14px}
 .card-seq{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
 .card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.3}
 .card-desc{font-size:12px;color:var(--text2);line-height:1.4}
-
-.card-right{padding:14px 14px 14px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px}
-.status-dot{width:10px;height:10px;border-radius:50%}
-.card-arrow{font-size:18px;color:var(--text3)}
+.card-right{padding:14px 14px 14px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.status-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px}
+.badge-ok{background:#EAF3DE;color:#27500A}
+.badge-soon{background:var(--gold-light);color:var(--gold)}
 .card-time{font-size:10px;color:var(--text3);white-space:nowrap}
+.card-arrow{font-size:18px;color:var(--text3)}
 
-/* STATUS COLORS */
-.s-intro .card-num{background:var(--blue-light)}.s-intro .card-num-val{color:var(--blue-dark)}.s-intro .card-num-label{color:var(--blue)}.s-intro .card-seq{color:var(--blue)}
-.s-cr .card-num{background:var(--teal-light)}.s-cr .card-num-val{color:var(--teal-dark)}.s-cr .card-num-label{color:var(--teal)}.s-cr .card-seq{color:var(--teal)}
+/* COULEURS PAR SÉQUENCE */
+.s-intro .card-num{background:var(--green-light)}.s-intro .card-num-val{color:#4a5a3d}.s-intro .card-num-label{color:var(--green)}.s-intro .card-seq{color:var(--green)}
+.s-matin .card-num{background:#e8f4ed}.s-matin .card-num-val{color:#1a5c3a}.s-matin .card-num-label{color:#2a7a50}.s-matin .card-seq{color:#2a7a50}
 .s-sig .card-num{background:#EEEDFE}.s-sig .card-num-val{color:#26215C}.s-sig .card-num-label{color:#534AB7}.s-sig .card-seq{color:#534AB7}
-.s-bilan .card-num{background:var(--amber-light)}.s-bilan .card-num-val{color:var(--amber-dark)}.s-bilan .card-num-label{color:var(--amber)}.s-bilan .card-seq{color:var(--amber)}
-.s-analyse .card-num{background:#FAECE7}.s-analyse .card-num-val{color:#4A1B0C}.s-analyse .card-num-label{color:#993C1D}.s-analyse .card-seq{color:#993C1D}
-.s-atelier .card-num{background:var(--green-light)}.s-atelier .card-num-val{color:var(--green-dark)}.s-atelier .card-num-label{color:var(--green)}.s-atelier .card-seq{color:var(--green)}
+.s-bilan .card-num{background:var(--gold-light)}.s-bilan .card-num-val{color:var(--gold)}.s-bilan .card-num-label{color:var(--gold)}.s-bilan .card-seq{color:var(--gold)}
+.s-aprem .card-num{background:#e8ede3}.s-aprem .card-num-val{color:#4a5a3d}.s-aprem .card-num-label{color:var(--green)}.s-aprem .card-seq{color:var(--green)}
+.s-final .card-num{background:#FCEBEB}.s-final .card-num-val{color:#791F1F}.s-final .card-num-label{color:#A32D2D}.s-final .card-seq{color:#A32D2D}
 
-.dot-available{background:var(--blue)}
-.dot-done{background:var(--green)}
-.dot-locked{background:var(--border)}
-
-/* BADGE DISPO */
-.badge-dispo{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
-.dispo{background:var(--green-light);color:var(--green-dark)}
-.bientot{background:var(--amber-light);color:var(--amber-dark)}
-
-/* INFO BANNER */
-.info-banner{background:var(--blue-light);border:1px solid #85B7EB;border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--blue-dark);display:flex;gap:10px;align-items:flex-start;line-height:1.5}
-.info-icon{font-size:18px;flex-shrink:0}
-
-/* FOOTER */
 .footer{text-align:center;padding:20px;font-size:12px;color:var(--text3)}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="header-logo">
-    <div class="logo-mark">
-      <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>
-    </div>
-    <div>
-      <h1>Métalux — Formation</h1>
-      <div class="header-sub">Lire et comprendre les documents comptables</div>
-    </div>
-  </div>
+  <h1>Métalux — Formation</h1>
+  <div class="header-sub">Lire et comprendre les documents comptables</div>
   <div class="header-meta">
     <div class="meta-chip">14h de formation</div>
     <div class="meta-chip">Non-comptables</div>
+    <div class="meta-chip">11 exercices</div>
     <div class="meta-chip">Cas fil rouge PME</div>
   </div>
 </div>
@@ -111,23 +79,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="progress-section">
   <div class="progress-header">
     <span class="progress-label">Progression</span>
-    <span class="progress-count" id="prog-count">0 / 10 exercices</span>
+    <span class="progress-count">11 / 11 exercices disponibles</span>
   </div>
-  <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:10%"></div></div>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
 </div>
 
 <div class="content">
 
-  <div class="info-banner">
-    <span class="info-icon">💡</span>
-    <span>Tous les exercices s'appuient sur Métalux Fabrications, une PME fictive réaliste. Avancez dans l'ordre — chaque séquence s'appuie sur la précédente.</span>
-  </div>
-
-  <!-- INTRO -->
+  <!-- INTRODUCTION -->
   <div class="seq-block">
     <div class="seq-label">Introduction</div>
 
-    <a class="exo-card available s-intro" href="exercices/01-plan-comptable.html">
+    <a class="exo-card s-intro" href="exercices/01-plan-comptable.html">
       <div class="card-inner">
         <div class="card-num"><div class="card-num-val">01</div><div class="card-num-label">Intro</div></div>
         <div class="card-body">
@@ -135,151 +98,130 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="card-title">Classes du plan comptable</div>
           <div class="card-desc">Classer des opérations · Choisir le bon document</div>
         </div>
-        <div class="card-right">
-          <span class="badge-dispo dispo">Disponible</span>
-          <div class="card-time">~20 min</div>
-          <div class="card-arrow">›</div>
-        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~20 min</div><div class="card-arrow">›</div></div>
       </div>
     </a>
 
-    <a class="exo-card locked s-intro" href="#">
+    <a class="exo-card s-intro" href="exercices/02-flux-entreprise.html">
       <div class="card-inner">
         <div class="card-num"><div class="card-num-val">02</div><div class="card-num-label">Intro</div></div>
         <div class="card-body">
           <div class="card-seq">Introduction</div>
           <div class="card-title">Les flux de l'entreprise</div>
-          <div class="card-desc">Identifier flux d'exploitation, investissement, financement</div>
+          <div class="card-desc">Exploitation · Investissement · Financement</div>
         </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~15 min</div>
-        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~20 min</div><div class="card-arrow">›</div></div>
       </div>
     </a>
   </div>
 
-  <!-- COMPTE DE RÉSULTAT -->
+  <!-- MATIN — CR & SIG -->
   <div class="seq-block">
-    <div class="seq-label">Séquence 1 — Compte de résultat</div>
+    <div class="seq-label">Matin — Compte de résultat & SIG</div>
 
-    <a class="exo-card locked s-cr" href="#">
+    <a class="exo-card s-matin" href="exercices/03-compte-resultat.html">
       <div class="card-inner">
         <div class="card-num"><div class="card-num-val">03</div><div class="card-num-label">CR</div></div>
         <div class="card-body">
           <div class="card-seq">Compte de résultat</div>
-          <div class="card-title">Lire le compte de résultat</div>
-          <div class="card-desc">Identifier produits, charges, résultat net de Métalux</div>
+          <div class="card-title">Lire et analyser le CR</div>
+          <div class="card-desc">Produits · Charges · Résultats partiels</div>
         </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~25 min</div>
-        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~25 min</div><div class="card-arrow">›</div></div>
       </div>
     </a>
 
-    <a class="exo-card locked s-cr" href="#">
+    <a class="exo-card s-sig" href="exercices/04-sig.html">
       <div class="card-inner">
-        <div class="card-num"><div class="card-num-val">04</div><div class="card-num-label">CR</div></div>
-        <div class="card-body">
-          <div class="card-seq">Compte de résultat</div>
-          <div class="card-title">Analyser la rentabilité</div>
-          <div class="card-desc">Détecter les anomalies · Poser les bonnes questions</div>
-        </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~20 min</div>
-        </div>
-      </div>
-    </a>
-  </div>
-
-  <!-- SIG -->
-  <div class="seq-block">
-    <div class="seq-label">Séquence 2 — SIG</div>
-
-    <a class="exo-card locked s-sig" href="#">
-      <div class="card-inner">
-        <div class="card-num"><div class="card-num-val">05</div><div class="card-num-label">SIG</div></div>
+        <div class="card-num"><div class="card-num-val">04</div><div class="card-num-label">SIG</div></div>
         <div class="card-body">
           <div class="card-seq">Soldes intermédiaires</div>
-          <div class="card-title">Construire la cascade de valeur</div>
-          <div class="card-desc">Marge brute · EBE · REX · Résultat net</div>
+          <div class="card-title">Construire la cascade SIG</div>
+          <div class="card-desc">Marge brute · VA · EBE · REX + Reconstitution complète</div>
         </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~25 min</div>
-        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~45 min</div><div class="card-arrow">›</div></div>
       </div>
     </a>
   </div>
 
   <!-- BILAN -->
   <div class="seq-block">
-    <div class="seq-label">Séquence 3 — Bilan</div>
+    <div class="seq-label">Matin — Le bilan</div>
 
-    <a class="exo-card locked s-bilan" href="#">
+    <a class="exo-card s-bilan" href="exercices/05-bilan.html">
       <div class="card-inner">
-        <div class="card-num"><div class="card-num-val">06</div><div class="card-num-label">Bilan</div></div>
+        <div class="card-num"><div class="card-num-val">05</div><div class="card-num-label">Bilan</div></div>
         <div class="card-body">
           <div class="card-seq">Bilan</div>
-          <div class="card-title">Lire l'actif et le passif</div>
-          <div class="card-desc">Ce que possède Métalux · Comment elle est financée</div>
+          <div class="card-title">Lire et reconstituer le bilan</div>
+          <div class="card-desc">Actif · Passif · Identifier les 4 risques</div>
         </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~25 min</div>
-        </div>
-      </div>
-    </a>
-
-    <a class="exo-card locked s-bilan" href="#">
-      <div class="card-inner">
-        <div class="card-num"><div class="card-num-val">07</div><div class="card-num-label">Bilan</div></div>
-        <div class="card-body">
-          <div class="card-seq">Bilan</div>
-          <div class="card-title">Diagnostiquer le BFR</div>
-          <div class="card-desc">Stock · Créances clients · Délais fournisseurs</div>
-        </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~20 min</div>
-        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~45 min</div><div class="card-arrow">›</div></div>
       </div>
     </a>
   </div>
 
-  <!-- ANALYSE -->
+  <!-- APRÈS-MIDI — SYNTHÈSE & ANALYSE -->
   <div class="seq-block">
-    <div class="seq-label">Séquence 4 — Analyse financière</div>
+    <div class="seq-label">Après-midi — Synthèse & Analyse financière</div>
 
-    <a class="exo-card locked s-analyse" href="#">
+    <a class="exo-card s-aprem" href="exercices/06-synthese-documents.html">
       <div class="card-inner">
-        <div class="card-num"><div class="card-num-val">08</div><div class="card-num-label">Analyse</div></div>
+        <div class="card-num"><div class="card-num-val">06</div><div class="card-num-label">Synthèse</div></div>
         <div class="card-body">
-          <div class="card-seq">Analyse financière</div>
-          <div class="card-title">Les grands équilibres</div>
-          <div class="card-desc">FR · BFR · Trésorerie nette · Ratios clés</div>
+          <div class="card-seq">Synthèse</div>
+          <div class="card-title">Où trouver l'information ?</div>
+          <div class="card-desc">CR · SIG · Bilan — 3 niveaux de difficulté</div>
         </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~30 min</div>
-        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~20 min</div><div class="card-arrow">›</div></div>
       </div>
     </a>
 
-    <a class="exo-card locked s-analyse" href="#">
+    <a class="exo-card s-aprem" href="exercices/07-impact-operations.html">
       <div class="card-inner">
-        <div class="card-num"><div class="card-num-val">09</div><div class="card-num-label">Analyse</div></div>
+        <div class="card-num"><div class="card-num-val">07</div><div class="card-num-label">Synthèse</div></div>
+        <div class="card-body">
+          <div class="card-seq">Synthèse</div>
+          <div class="card-title">Impact des opérations</div>
+          <div class="card-desc">Quel document est impacté et comment ?</div>
+        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~20 min</div><div class="card-arrow">›</div></div>
+      </div>
+    </a>
+
+    <a class="exo-card s-aprem" href="exercices/08-ratios.html">
+      <div class="card-inner">
+        <div class="card-num"><div class="card-num-val">08</div><div class="card-num-label">Ratios</div></div>
+        <div class="card-body">
+          <div class="card-seq">Analyse financière</div>
+          <div class="card-title">Les ratios financiers</div>
+          <div class="card-desc">Calculer · Interpréter · Recommander</div>
+        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~30 min</div><div class="card-arrow">›</div></div>
+      </div>
+    </a>
+
+    <a class="exo-card s-aprem" href="exercices/09-grands-equilibres.html">
+      <div class="card-inner">
+        <div class="card-num"><div class="card-num-val">09</div><div class="card-num-label">Équilibres</div></div>
+        <div class="card-body">
+          <div class="card-seq">Analyse financière</div>
+          <div class="card-title">Les grands équilibres</div>
+          <div class="card-desc">FR · BFR · Trésorerie nette</div>
+        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~30 min</div><div class="card-arrow">›</div></div>
+      </div>
+    </a>
+
+    <a class="exo-card s-aprem" href="exercices/10-risques-financiers.html">
+      <div class="card-inner">
+        <div class="card-num"><div class="card-num-val">10</div><div class="card-num-label">Risques</div></div>
         <div class="card-body">
           <div class="card-seq">Analyse financière</div>
           <div class="card-title">Identifier les risques financiers</div>
-          <div class="card-desc">Solvabilité · Liquidité · Endettement</div>
+          <div class="card-desc">Liquidité · Solvabilité · Exploitation · Dépendance</div>
         </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~25 min</div>
-        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~25 min</div><div class="card-arrow">›</div></div>
       </div>
     </a>
   </div>
@@ -288,25 +230,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="seq-block">
     <div class="seq-label">Atelier final</div>
 
-    <a class="exo-card locked s-atelier" href="#">
+    <a class="exo-card s-final" href="exercices/11-atelier-final.html">
       <div class="card-inner">
-        <div class="card-num"><div class="card-num-val">10</div><div class="card-num-label">Atelier</div></div>
+        <div class="card-num"><div class="card-num-val">11</div><div class="card-num-label">Audit</div></div>
         <div class="card-body">
           <div class="card-seq">Mini audit PME</div>
           <div class="card-title">Diagnostic complet Métalux</div>
-          <div class="card-desc">Risques · Causes · Actions correctives · Priorisation</div>
+          <div class="card-desc">Anomalies · Ratios · Risques · Plan d'action · Note de synthèse</div>
         </div>
-        <div class="card-right">
-          <span class="badge-dispo bientot">Bientôt</span>
-          <div class="card-time">~45 min</div>
-        </div>
+        <div class="card-right"><span class="status-badge badge-ok">✓ Dispo</span><div class="card-time">~45 min</div><div class="card-arrow">›</div></div>
       </div>
     </a>
   </div>
 
 </div>
 
-<div class="footer">Métalux Fabrications — Cas pédagogique fictif</div>
+<div class="footer">Métalux Fabrications — Cas pédagogique fictif · Formation lecture des documents comptables</div>
 
 </body>
 </html>

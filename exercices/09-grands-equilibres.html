@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#6B7C5C">
+<title>Métalux — Les grands équilibres</title>
+<style>
+:root{
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;--green-dark:#4a5a3d;
+  --gold:#C17F24;--gold-light:#f9eed8;--gold-dark:#8a5a18;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:40px}
+
+.app-header{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:2px}
+.app-header p{font-size:12px;color:rgba(255,255,255,.65)}
+.tab-bar{display:flex;gap:0;padding:0;border-top:1px solid rgba(255,255,255,.15);overflow-x:auto;scrollbar-width:none;margin-top:10px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+
+.score-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px}
+.score-num{font-size:20px;font-weight:700;color:var(--green)}
+.score-label{color:var(--text2);flex:1}
+.score-pct{font-size:12px;font-weight:600;color:var(--text3)}
+
+.pane{display:none;padding:16px 16px 0}
+.pane.on{display:block}
+
+.section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+.niveau{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;margin-bottom:12px}
+.n1{background:#EAF3DE;color:#27500A}
+.n2{background:var(--gold-light);color:var(--gold-dark)}
+.n3{background:var(--red-light);color:var(--red)}
+
+/* MÉMO */
+.eq-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.eq-card{border-radius:var(--radius-lg);overflow:hidden}
+.eq-header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.eq-name{font-size:15px;font-weight:700;color:#fff}
+.eq-formule{font-size:12px;color:rgba(255,255,255,.75);margin-top:2px}
+.eq-result-badge{font-size:14px;font-weight:800;color:#fff;background:rgba(0,0,0,.2);padding:4px 12px;border-radius:20px}
+.eq-body{background:var(--bg);padding:12px 16px;display:flex;flex-wrap:wrap;gap:16px}
+.eq-item{font-size:13px;color:var(--text2);display:flex;gap:6px}
+.eq-item strong{color:var(--text)}
+
+/* DONNÉES */
+.donnees-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:16px}
+.donnees-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.donnees-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.donnee-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:.5px solid var(--border);font-size:13px}
+.donnee-row:last-child{border-bottom:none}
+.donnee-label{color:var(--text2)}
+.donnee-value{font-weight:700;color:var(--text)}
+
+/* STEPS */
+.sig-step{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.sig-step.locked{opacity:.5;pointer-events:none}
+.sig-step-header{padding:12px 14px;display:flex;align-items:center;gap:10px}
+.sig-step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.sig-step-title{font-size:14px;font-weight:600;color:var(--text)}
+.sig-step-formula{font-size:12px;color:var(--text3);margin-top:2px}
+.sig-step-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+.input-row{display:flex;align-items:center;gap:8px}
+.input-label{font-size:13px;color:var(--text2);flex:1;line-height:1.4}
+.input-field{width:100px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;text-align:right;background:var(--bg2);color:var(--text);-moz-appearance:textfield}
+.input-field:focus{outline:none;border-color:var(--green);background:var(--green-light)}
+.input-field.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A}
+.input-field.wrong{border-color:#A32D2D;background:var(--red-light);color:#791F1F}
+.input-unit{font-size:12px;color:var(--text3);flex-shrink:0}
+.step-feedback{font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;display:none}
+.step-feedback.show.ok{display:block;background:#EAF3DE;color:#27500A}
+.step-feedback.show.ko{display:block;background:var(--red-light);color:#791F1F}
+.step-check{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:#fff;width:100%}
+
+/* QCM */
+.q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.q-header{padding:13px 14px;display:flex;align-items:flex-start;gap:10px}
+.q-num{width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.q-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.q-choices{display:flex;flex-direction:column;gap:8px;padding:0 14px 13px}
+.q-btn{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--text);transition:all .15s;text-align:left;line-height:1.3}
+.q-btn.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark)}
+.q-btn.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none;border-width:2px}
+.q-btn.wrong{border-color:#A32D2D;background:var(--red-light);color:#791F1F;pointer-events:none;border-width:2px}
+.q-btn.dimmed{opacity:.35;pointer-events:none}
+.q-feedback{padding:8px 14px 12px;font-size:12px;line-height:1.5;display:none}
+.q-feedback.show.ok{display:block;color:#27500A}
+.q-feedback.show.ko{display:block;color:#791F1F}
+
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s}
+
+.btn-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.btn{padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid;min-height:46px;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--green);color:#fff;border-color:var(--green);flex:1}
+.btn-secondary{background:var(--bg);color:var(--text2);border-color:var(--border)}
+.btn-next{background:var(--green);color:#fff;border-color:var(--green);width:100%;margin-bottom:20px}
+
+.result-final{background:var(--green);border-radius:var(--radius-lg);padding:20px;text-align:center;margin-bottom:20px;display:none}
+.result-final.show{display:block}
+.result-final-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
+.result-score{font-size:36px;font-weight:800;color:var(--gold);margin:12px 0}
+.result-final-sub{font-size:14px;color:rgba(255,255,255,.8);line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Métalux — Les grands équilibres</h1>
+  <p>FR · BFR · Trésorerie nette</p>
+  <div class="tab-bar">
+    <button class="tab on" onclick="switchTab('memo',this)">Mémo</button>
+    <button class="tab" onclick="switchTab('n1',this)">Niveau 1 · Calculer</button>
+    <button class="tab" onclick="switchTab('n2',this)">Niveau 2 · Interpréter</button>
+    <button class="tab" onclick="switchTab('n3',this)">Niveau 3 · Consultant</button>
+  </div>
+</div>
+
+<div class="score-bar" id="score-bar" style="display:none">
+  <span class="score-num" id="score-num">0</span>
+  <span class="score-label" id="score-label">points</span>
+  <span class="score-pct" id="score-pct"></span>
+</div>
+
+<!-- MÉMO -->
+<div id="pane-memo" class="pane on">
+  <div class="section-title">Les 3 grands équilibres de Métalux</div>
+  <div class="section-sub">FR − BFR = Trésorerie nette. Trois indicateurs à lire ensemble.</div>
+
+  <div class="eq-cards">
+    <div class="eq-card">
+      <div class="eq-header" style="background:var(--green)">
+        <div><div class="eq-name">Fonds de roulement (FR)</div><div class="eq-formule">(CP + Dettes MLT) − Actif immobilisé</div></div>
+        <div class="eq-result-badge">+ 201 k€</div>
+      </div>
+      <div class="eq-body">
+        <div class="eq-item"><strong>CP 256</strong> + Emprunts MLT 580 = 836 k€ de ressources stables</div>
+        <div class="eq-item">− Actif immobilisé <strong>635 k€</strong> = FR + 201 k€</div>
+        <div class="eq-item" style="color:var(--green-dark)">✓ Positif mais insuffisant face au BFR</div>
+      </div>
+    </div>
+
+    <div class="eq-card">
+      <div class="eq-header" style="background:var(--gold)">
+        <div><div class="eq-name">Besoin en fonds de roulement (BFR)</div><div class="eq-formule">Stocks + Créances − Dettes d'exploitation</div></div>
+        <div class="eq-result-badge">+ 271 k€</div>
+      </div>
+      <div class="eq-body">
+        <div class="eq-item">Stock <strong>480</strong> + Créances <strong>460</strong> = 940 k€ de besoins</div>
+        <div class="eq-item">− Dettes exploitation <strong>669 k€</strong> = BFR + 271 k€</div>
+        <div class="eq-item" style="color:var(--gold-dark)">⚠ Trop élevé — stock et créances immobilisent du cash</div>
+      </div>
+    </div>
+
+    <div class="eq-card">
+      <div class="eq-header" style="background:var(--red)">
+        <div><div class="eq-name">Trésorerie nette</div><div class="eq-formule">FR − BFR = Disponibilités − Découvert</div></div>
+        <div class="eq-result-badge">− 70 k€</div>
+      </div>
+      <div class="eq-body">
+        <div class="eq-item">FR <strong>+ 201</strong> − BFR <strong>271</strong> = − 70 k€</div>
+        <div class="eq-item">Vérif : Dispo <strong>12</strong> − Découvert <strong>82</strong> = − 70 k€ ✓</div>
+        <div class="eq-item" style="color:var(--red)">🚨 Structurellement négative — survie sous perfusion bancaire</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-next" onclick="switchTabByName('n1')">Commencer le calcul →</button>
+</div>
+
+<!-- NIVEAU 1 -->
+<div id="pane-n1" class="pane">
+  <div class="niveau n1">Niveau 1 — Calculez les 3 équilibres</div>
+  <div class="section-title">À partir des données brutes de Métalux</div>
+  <div class="section-sub">Chaque étape se débloque quand la précédente est validée. Tolérance : ±2 k€.</div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="donnees-card">
+    <div class="donnees-title">📋 Données Métalux 2023 (en k€)</div>
+    <div class="donnees-grid">
+      <div>
+        <div class="donnee-row"><span class="donnee-label">Capitaux propres</span><span class="donnee-value">256</span></div>
+        <div class="donnee-row"><span class="donnee-label">Emprunts bancaires MLT</span><span class="donnee-value">580</span></div>
+        <div class="donnee-row"><span class="donnee-label">Actif immobilisé net</span><span class="donnee-value">635</span></div>
+        <div class="donnee-row"><span class="donnee-label">Stocks</span><span class="donnee-value">480</span></div>
+      </div>
+      <div>
+        <div class="donnee-row"><span class="donnee-label">Créances clients + autres</span><span class="donnee-value">460</span></div>
+        <div class="donnee-row"><span class="donnee-label">Dettes d'exploitation</span><span class="donnee-value">669</span></div>
+        <div class="donnee-row"><span class="donnee-label">Disponibilités</span><span class="donnee-value">12</span></div>
+        <div class="donnee-row"><span class="donnee-label">Découvert bancaire</span><span class="donnee-value">82</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 1 — Ressources stables -->
+  <div class="sig-step" id="step1">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green)">1</div>
+      <div><div class="sig-step-title">Ressources stables</div><div class="sig-step-formula">Capitaux propres + Emprunts MLT</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Capitaux propres + Emprunts MLT =</div>
+        <input class="input-field" id="r1" type="number" placeholder="?" oninput="clearFb(1)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb1"></div>
+      <button class="step-check" onclick="checkStep(1,836,'✓ Calcul : 256 + 580 = 836 k€. CP (256 k€) + emprunts MLT (580 k€) = ressources stables.')">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 — FR -->
+  <div class="sig-step locked" id="step2">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green)">2</div>
+      <div><div class="sig-step-title">Fonds de roulement (FR)</div><div class="sig-step-formula">Ressources stables − Actif immobilisé</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Ressources stables − Actif immobilisé =</div>
+        <input class="input-field" id="r2" type="number" placeholder="?" oninput="clearFb(2)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb2"></div>
+      <button class="step-check" onclick="checkStep(2,201,'✓ Calcul : 836 − 635 = +201 k€. FR positif — les ressources longues couvrent les actifs longs avec 201 k€ de marge. Mais est-ce suffisant face au BFR ?')">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 — Besoins exploitation -->
+  <div class="sig-step locked" id="step3">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--gold)">3</div>
+      <div><div class="sig-step-title">Total besoins d'exploitation</div><div class="sig-step-formula">Stocks + Créances clients & autres</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Stocks + Créances clients & autres =</div>
+        <input class="input-field" id="r3" type="number" placeholder="?" oninput="clearFb(3)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb3"></div>
+      <button class="step-check" onclick="checkStep(3,940,'✓ Calcul : 480 + 412 + 48 = 940 k€. Stock bloqué + créances clients en attente = 940 k€ de besoins. C\'est énorme pour une entreprise de 3 200 k€ de CA.')">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 — BFR -->
+  <div class="sig-step locked" id="step4">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--gold)">4</div>
+      <div><div class="sig-step-title">Besoin en fonds de roulement (BFR)</div><div class="sig-step-formula">Besoins exploitation − Dettes d'exploitation</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Total besoins − Dettes d'exploitation =</div>
+        <input class="input-field" id="r4" type="number" placeholder="?" oninput="clearFb(4)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb4"></div>
+      <button class="step-check" onclick="checkStep(4,271,'✓ Calcul : 940 − 669 = +271 k€. Le cycle consomme 271 k€ en permanence. Le FR de 201 k€ ne suffit pas — il manque 70 k€.')">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 5 — Trésorerie nette méthode 1 -->
+  <div class="sig-step locked" id="step5">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--red)">5</div>
+      <div><div class="sig-step-title">Trésorerie nette — méthode 1</div><div class="sig-step-formula">FR − BFR</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">FR − BFR =</div>
+        <input class="input-field" id="r5" type="number" placeholder="?" oninput="clearFb(5)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb5"></div>
+      <button class="step-check" onclick="checkStep(5,-70,'✓ Calcul : 201 − 271 = −70 k€. Le BFR dépasse le FR de 70 k€ — ce déficit est comblé par le découvert bancaire. Trésorerie structurellement négative.')">Vérifier</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 6 — Vérification -->
+  <div class="sig-step locked" id="step6">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--red)">6</div>
+      <div><div class="sig-step-title">Vérification — méthode 2</div><div class="sig-step-formula">Disponibilités − Découvert bancaire</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Disponibilités − Découvert bancaire =</div>
+        <input class="input-field" id="r6" type="number" placeholder="?" oninput="clearFb(6)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb6"></div>
+      <button class="step-check" onclick="checkStep(6,-70,'✓ Calcul : 12 − 82 = −70 k€ — identique à la méthode 1. Le bilan est cohérent. Métalux a 12 k€ en banque mais 82 k€ de découvert. Situation critique.')">Vérifier</button>
+    </div>
+  </div>
+
+  <button class="btn btn-next" id="btn-n2" style="display:none" onclick="switchTabByName('n2')">Niveau 2 — Interpréter →</button>
+  <div style="height:10px"></div>
+</div>
+
+<!-- NIVEAU 2 -->
+<div id="pane-n2" class="pane">
+  <div class="niveau n2">Niveau 2 — Interprétez les équilibres</div>
+  <div class="section-title">Que signifient ces chiffres pour Métalux ?</div>
+  <div class="section-sub">Choisissez la meilleure interprétation pour chaque question.</div>
+  <div id="qlist-n2"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetN2()">↺</button>
+    <button class="btn btn-primary" onclick="checkN2()">Vérifier</button>
+  </div>
+  <button class="btn btn-next" onclick="switchTabByName('n3')">Niveau 3 →</button>
+</div>
+
+<!-- NIVEAU 3 -->
+<div id="pane-n3" class="pane">
+  <div class="niveau n3">Niveau 3 — Posture consultant</div>
+  <div class="section-title">Luc veut réduire son BFR de 100 k€ en 6 mois</div>
+  <div class="section-sub">Quelles actions recommandez-vous ?</div>
+  <div id="qlist-n3"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetN3()">↺</button>
+    <button class="btn btn-primary" onclick="checkN3()">Vérifier</button>
+  </div>
+  <div class="result-final" id="result-final">
+    <div class="result-final-title">🎉 Grands équilibres maîtrisés !</div>
+    <div class="result-score" id="final-score">0 / 0</div>
+    <div class="result-final-sub">Vous comprenez les 3 équilibres financiers et savez proposer des actions correctives. Passons au Bloc 4 — Risques et atelier final.</div>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<script>
+let stepsOk=0,n2score=0,n3score=0;
+const TOTAL_STEPS=6;
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('pane-'+id).classList.add('on');
+  document.getElementById('score-bar').style.display=id==='memo'?'none':'flex';
+  updateScore();
+}
+function switchTabByName(id){
+  const ids=['memo','n1','n2','n3'];
+  document.querySelectorAll('.tab').forEach((t,i)=>{if(ids[i]===id)switchTab(id,t);});
+}
+function updateScore(){
+  const total=stepsOk+n2score+n3score;
+  document.getElementById('score-num').textContent=total;
+  document.getElementById('score-label').textContent='points accumulés';
+}
+function updateProgress(){
+  document.getElementById('progress-fill').style.width=Math.round(stepsOk/TOTAL_STEPS*100)+'%';
+}
+function clearFb(n){
+  document.getElementById('fb'+n).className='step-feedback';
+  document.getElementById('r'+n).classList.remove('correct','wrong');
+}
+function checkStep(n,expected,fbOk){
+  const input=document.getElementById('r'+n);
+  const fb=document.getElementById('fb'+n);
+  const val=parseFloat(input.value);
+  if(isNaN(val)){fb.className='step-feedback show ko';fb.innerHTML='Entrez une valeur.';return;}
+  if(Math.abs(val-expected)<=2){
+    input.classList.add('correct');fb.className='step-feedback show ok';fb.innerHTML=fbOk;
+    stepsOk++;updateScore();updateProgress();
+    if(n<TOTAL_STEPS){setTimeout(()=>{document.getElementById('step'+(n+1)).classList.remove('locked');},600);}
+    else{setTimeout(()=>{document.getElementById('btn-n2').style.display='block';},600);}
+  }else{
+    input.classList.add('wrong');fb.className='step-feedback show ko';
+    fb.innerHTML='✗ Résultat incorrect. Reprenez le calcul avec les données brutes.';
+  }
+}
+
+const QN2=[
+  {
+    q:"Le FR est positif (+201 k€) mais la trésorerie est négative (−70 k€). Comment est-ce possible ?",
+    choices:[
+      {v:'a',text:"C'est une erreur de calcul — FR positif implique trésorerie positive"},
+      {v:'b',text:"Le BFR (271 k€) dépasse le FR (201 k€). L'exploitation consomme plus que ce que le FR peut couvrir.",correct:true},
+      {v:'c',text:"Le FR positif signifie que l'entreprise est solvable — la trésorerie n'a pas d'importance"}
+    ],
+    fb:"✓ FR positif ≠ trésorerie positive. Si le BFR > FR, il manque du cash. Chez Métalux : 271 − 201 = 70 k€ de déficit comblé par le découvert. C'est le piège classique de la croissance mal financée."
+  },
+  {
+    q:"Le BFR de Métalux est de 271 k€. Quelle en est la principale cause ?",
+    choices:[
+      {v:'a',text:"Les dettes fournisseurs sont trop faibles"},
+      {v:'b',text:"Le stock de 480 k€ et les créances de 460 k€ immobilisent 940 k€ de cash",correct:true},
+      {v:'c',text:"Les emprunts bancaires sont trop élevés"}
+    ],
+    fb:"✓ 940 k€ de besoins (stock + créances) pour 669 k€ de ressources fournisseurs = BFR 271 k€. Le stock bloqué depuis 8 mois et les délais clients à 75 jours sont les coupables."
+  },
+  {
+    q:"Si Métalux réduit son stock de 200 k€, quel impact sur la trésorerie nette ?",
+    choices:[
+      {v:'a',text:"Aucun impact — le stock est au bilan, pas en trésorerie"},
+      {v:'b',text:"La trésorerie s'améliore de 200 k€ : BFR passe de 271 à 71 k€, tréso passe de −70 à +130 k€",correct:true},
+      {v:'c',text:"La trésorerie s'améliore seulement si le stock est vendu comptant"}
+    ],
+    fb:"✓ Vendre du stock = encaisser du cash. BFR : 271 − 200 = 71 k€. Tréso : FR 201 − BFR 71 = +130 k€. Un seul levier peut transformer une trésorerie négative en positive."
+  },
+  {
+    q:"Métalux a un FR de 201 k€. Est-ce suffisant pour une entreprise de cette taille ?",
+    choices:[
+      {v:'a',text:"Oui — FR positif signifie que l'entreprise est bien gérée"},
+      {v:'b',text:"Non — le FR représente seulement 6,3% du CA. Le BFR le dépasse et la trésorerie reste négative.",correct:true},
+      {v:'c',text:"Oui — tant que le FR est positif, il n'y a pas de risque"}
+    ],
+    fb:"✓ FR / CA = 201 / 3 200 = 6,3%. C'est très faible. Le FR doit idéalement couvrir le BFR pour éviter le recours au découvert. Chez Métalux, le FR est insuffisant de 70 k€."
+  }
+];
+
+const QN3=[
+  {
+    q:"Action 1 — Pour réduire le stock de 100 k€, quelle est la meilleure approche ?",
+    choices:[
+      {v:'a',text:"Acheter moins de matières et écouler les stocks existants en priorité",correct:true},
+      {v:'b',text:"Négocier des délais de paiement plus longs avec AluFrance"},
+      {v:'c',text:"Augmenter les prix de vente pour compenser"}
+    ],
+    fb:"✓ Réduire les achats + écouler le stock existant libère du cash immédiatement. Les 480 k€ de stock représentent ~55 jours de consommation vs 25j norme. Viser 25j = libérer ~250 k€."
+  },
+  {
+    q:"Action 2 — Pour réduire les créances clients, quelle négociation avec Promobuild ?",
+    choices:[
+      {v:'a',text:"Accepter un escompte de 2% pour paiement à 30 jours au lieu de 75 jours",correct:true},
+      {v:'b',text:"Facturer plus souvent pour multiplier les encaissements"},
+      {v:'c',text:"Demander des acomptes systématiques sur chaque commande"}
+    ],
+    fb:"✓ Un escompte de 2% pour paiement rapide coûte moins cher que le découvert bancaire (intérêts). Promobuild = 38% du CA. Passer de 75j à 30j = ~175 k€ de trésorerie libérée."
+  },
+  {
+    q:"Action 3 — Pour améliorer le FR sans nouvel emprunt, quelle action ?",
+    choices:[
+      {v:'a',text:"Augmenter le capital en demandant un apport aux associés",correct:true},
+      {v:'b',text:"Vendre les machines pour réduire l'actif immobilisé"},
+      {v:'c',text:"Réduire les charges fixes pour améliorer le résultat"}
+    ],
+    fb:"✓ Un apport en capital renforce les CP → augmente les ressources stables → améliore le FR sans alourdir la dette. Réduire les charges améliore le résultat mais pas directement le FR."
+  }
+];
+
+function buildQCM(qs,containerId){
+  const c=document.getElementById(containerId);c.innerHTML='';
+  qs.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    q.choices.forEach(ch=>{
+      btns+='<button class="q-btn" data-val="'+ch.v+'" onclick="selectQ(\''+containerId+'\','+i+',\''+ch.v+'\')">'+ch.text+'</button>';
+    });
+    card.innerHTML='<div class="q-header"><div class="q-num">'+(i+1)+'</div><div class="q-text">'+q.q+'</div></div><div class="q-choices" id="'+containerId+'-c-'+i+'">'+btns+'</div><div class="q-feedback" id="'+containerId+'-f-'+i+'"></div>';
+    c.appendChild(card);
+  });
+}
+function selectQ(container,idx,val){
+  document.querySelectorAll('#'+container+'-c-'+idx+' .q-btn').forEach(b=>b.classList.toggle('selected',b.dataset.val===val));
+}
+function checkQCM(qs,containerId,scoreKey){
+  let correct=0;
+  qs.forEach((q,i)=>{
+    const selected=document.querySelector('#'+containerId+'-c-'+i+' .q-btn.selected');
+    const fb=document.getElementById(containerId+'-f-'+i);
+    const correctChoice=q.choices.find(c=>c.correct);
+    document.querySelectorAll('#'+containerId+'-c-'+i+' .q-btn').forEach(b=>{
+      b.classList.remove('selected');
+      if(b.dataset.val===correctChoice.v)b.classList.add('correct');
+      else if(selected&&b===selected)b.classList.add('wrong');
+      else b.classList.add('dimmed');
+    });
+    if(selected&&selected.dataset.val===correctChoice.v){correct++;fb.className='q-feedback show ok';fb.innerHTML=q.fb;}
+    else{fb.className='q-feedback show ko';fb.innerHTML='✗ '+q.fb;}
+  });
+  if(scoreKey==='n2')n2score=correct;else n3score=correct;
+  updateScore();
+  if(scoreKey==='n3'){
+    setTimeout(()=>{
+      const f=document.getElementById('result-final');f.classList.add('show');
+      document.getElementById('final-score').textContent=(stepsOk+n2score+n3score)+' / '+(TOTAL_STEPS+QN2.length+QN3.length);
+      f.scrollIntoView({behavior:'smooth'});
+    },600);
+  }
+}
+function resetN2(){n2score=0;buildQCM(QN2,'qlist-n2');updateScore();}
+function resetN3(){n3score=0;buildQCM(QN3,'qlist-n3');updateScore();}
+function checkN2(){checkQCM(QN2,'qlist-n2','n2');}
+function checkN3(){checkQCM(QN3,'qlist-n3','n3');}
+
+buildQCM(QN2,'qlist-n2');
+buildQCM(QN3,'qlist-n3');
+</script>
+</body>
+</html>

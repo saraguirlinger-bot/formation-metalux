@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#6B7C5C">
+<title>Métalux — Les grands équilibres</title>
+<style>
+:root{
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;--green-dark:#4a5a3d;
+  --gold:#C17F24;--gold-light:#f9eed8;--gold-dark:#8a5a18;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:40px}
+.app-header{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:2px}
+.app-header p{font-size:12px;color:rgba(255,255,255,.65)}
+.tab-bar{display:flex;gap:0;padding:0;border-top:1px solid rgba(255,255,255,.15);overflow-x:auto;scrollbar-width:none;margin-top:10px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+.score-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px}
+.score-num{font-size:20px;font-weight:700;color:var(--green)}
+.score-label{color:var(--text2);flex:1}
+.score-pct{font-size:12px;font-weight:600;color:var(--text3)}
+.pane{display:none;padding:16px 16px 0}
+.pane.on{display:block}
+.section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+.niveau{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;margin-bottom:12px}
+.n1{background:#EAF3DE;color:#27500A}
+.n2{background:var(--gold-light);color:var(--gold-dark)}
+.n3{background:var(--red-light);color:var(--red)}
+
+/* MÉMO */
+.eq-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.eq-card{border-radius:var(--radius-lg);overflow:hidden}
+.eq-header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.eq-name{font-size:14px;font-weight:700;color:#fff}
+.eq-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px}
+.eq-badge{font-size:13px;font-weight:800;color:#fff;background:rgba(0,0,0,.15);padding:4px 12px;border-radius:20px;white-space:nowrap}
+.eq-body{background:var(--bg);padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.eq-line{font-size:13px;color:var(--text2);line-height:1.5}
+.eq-line strong{color:var(--text)}
+
+.aide-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:14px}
+.aide-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.aide-row{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);padding:5px 0;border-bottom:.5px solid var(--border);line-height:1.5}
+.aide-row:last-child{border-bottom:none}
+.aide-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+
+/* CALCUL */
+.donnees-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:16px}
+.donnees-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.donnees-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.donnee-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:.5px solid var(--border);font-size:13px}
+.donnee-row:last-child{border-bottom:none}
+.donnee-label{color:var(--text2)}
+.donnee-value{font-weight:700}
+.sig-step{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px;transition:opacity .3s}
+.sig-step.locked{opacity:.4;pointer-events:none}
+.sig-step-header{padding:12px 14px;display:flex;align-items:center;gap:10px}
+.sig-step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.sig-step-title{font-size:14px;font-weight:600;color:var(--text)}
+.sig-step-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.sig-step-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+.input-row{display:flex;align-items:center;gap:8px}
+.input-label{font-size:13px;color:var(--text2);flex:1;line-height:1.4}
+.input-field{width:100px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;text-align:right;background:var(--bg2);color:var(--text);-moz-appearance:textfield}
+.input-field::-webkit-inner-spin-button{-webkit-appearance:none}
+.input-field:focus{outline:none;border-color:var(--green);background:var(--green-light)}
+.input-field.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none}
+.input-field.wrong{border-color:var(--red);background:var(--red-light);color:#791F1F}
+.input-unit{font-size:12px;color:var(--text3);white-space:nowrap}
+.step-feedback{font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;display:none}
+.step-feedback.ok{display:block;background:#EAF3DE;color:#27500A}
+.step-feedback.ko{display:block;background:var(--red-light);color:#791F1F}
+.step-check{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:#fff;width:100%}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s}
+
+/* QCM */
+.q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.q-header{padding:13px 14px;display:flex;align-items:flex-start;gap:10px}
+.q-num{width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.q-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.q-choices{display:flex;flex-direction:column;gap:8px;padding:0 14px 13px}
+.q-btn{padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:2px solid var(--border);background:var(--bg);color:var(--text);text-align:left;transition:all .15s;line-height:1.3}
+.q-btn:active{transform:scale(.98)}
+.q-btn.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark);border-width:3px;font-weight:600;box-shadow:0 2px 8px rgba(107,124,92,.25)}
+.q-btn.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none;border-width:3px}
+.q-btn.wrong{border-color:var(--red);background:var(--red-light);color:#791F1F;pointer-events:none;border-width:2px;opacity:.7}
+.q-btn.dimmed{opacity:.25;pointer-events:none}
+.q-feedback{padding:8px 14px 12px;font-size:12px;line-height:1.5;display:none;border-radius:0 0 8px 8px}
+.q-feedback.show.ok{display:block;background:#EAF3DE;color:#27500A}
+.q-feedback.show.ko{display:block;background:var(--red-light);color:#791F1F}
+
+/* SYNTHÈSE */
+.synthese-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.synthese-header{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.synthese-score-big{font-size:30px;font-weight:800}
+.synthese-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.synthese-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.4}
+.s-ok{background:#EAF3DE}
+.s-ko{background:var(--gold-light)}
+.btn{padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid;min-height:46px;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-next{background:var(--green);color:#fff;border-color:var(--green);width:100%;margin-bottom:16px;padding:13px}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>Métalux — Les grands équilibres</h1>
+  <p>FR · BFR · Trésorerie nette</p>
+  <div class="tab-bar">
+    <button class="tab on" onclick="switchTab('memo',this)">Mémo</button>
+    <button class="tab" onclick="switchTab('ex1',this)">Exercice 1 · Calculer</button>
+    <button class="tab" onclick="switchTab('ex2',this)">Exercice 2 · Interpréter</button>
+    <button class="tab" onclick="switchTab('ex3',this)">Exercice 3 · Consultant</button>
+    <button class="tab" onclick="switchTab('synthese',this)">Synthèse</button>
+  </div>
+</div>
+<div class="score-bar" id="score-bar" style="display:none">
+  <span class="score-num" id="score-num">0</span>
+  <span class="score-label" id="score-label">points</span>
+  <span class="score-pct" id="score-pct"></span>
+</div>
+
+<!-- MÉMO -->
+<div id="pane-memo" class="pane on">
+  <div class="section-title">Les 3 grands équilibres de Métalux</div>
+  <div class="section-sub">FR − BFR = Trésorerie nette. Mémorisez la logique — retrouvez les formules par raisonnement.</div>
+  <div class="eq-cards">
+    <div class="eq-card">
+      <div class="eq-header" style="background:var(--green)">
+        <div><div class="eq-name">Fonds de roulement (FR)</div><div class="eq-sub">Ressources stables − Emplois stables</div></div>
+        <div class="eq-badge">+201 k€</div>
+      </div>
+      <div class="eq-body">
+        <div class="eq-line">(CP <strong>256</strong> + Emprunts MLT <strong>580</strong>) − Actif immobilisé <strong>635</strong> = <strong>+201 k€</strong></div>
+        <div class="eq-line" style="color:var(--green-dark)">✓ Positif — mais insuffisant face au BFR</div>
+      </div>
+    </div>
+    <div class="eq-card">
+      <div class="eq-header" style="background:var(--gold)">
+        <div><div class="eq-name">Besoin en fonds de roulement (BFR)</div><div class="eq-sub">Besoins cycle − Ressources cycle</div></div>
+        <div class="eq-badge">+271 k€</div>
+      </div>
+      <div class="eq-body">
+        <div class="eq-line">(Stocks <strong>480</strong> + Créances <strong>460</strong>) − Dettes exploitation <strong>669</strong> = <strong>+271 k€</strong></div>
+        <div class="eq-line" style="color:var(--gold-dark)">⚠ Trop élevé — stock et créances bloquent 271 k€</div>
+      </div>
+    </div>
+    <div class="eq-card">
+      <div class="eq-header" style="background:var(--red)">
+        <div><div class="eq-name">Trésorerie nette</div><div class="eq-sub">FR − BFR = Dispo − Découvert</div></div>
+        <div class="eq-badge">−70 k€</div>
+      </div>
+      <div class="eq-body">
+        <div class="eq-line">FR <strong>201</strong> − BFR <strong>271</strong> = <strong>−70 k€</strong></div>
+        <div class="eq-line">Vérif : Dispo <strong>12</strong> − Découvert <strong>82</strong> = <strong>−70 k€</strong> ✓</div>
+        <div class="eq-line" style="color:var(--red)">🚨 Structurellement négative — sous perfusion bancaire</div>
+      </div>
+    </div>
+  </div>
+  <div class="aide-card">
+    <div class="aide-title">💡 Fiche d'aide — La logique à retenir</div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green)"></div><span><strong>FR</strong> — Ce que les ressources longues financent au-delà des actifs longs. Doit être &gt; 0.</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--gold)"></div><span><strong>BFR</strong> — Ce que le cycle d'exploitation consomme en cash. Stock + créances − dettes fournis.</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--red)"></div><span><strong>Trésorerie nette</strong> = FR − BFR. Si BFR &gt; FR → trésorerie négative → découvert.</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green-mid)"></div><span>FR positif ≠ trésorerie positive. Chez Métalux : FR +201 mais BFR +271 → tréso −70</span></div>
+  </div>
+  <button class="btn btn-next" onclick="switchTabByName('ex1')">Commencer le calcul →</button>
+</div>
+
+<!-- EX1 — CALCUL sans formules dans les labels -->
+<div id="pane-ex1" class="pane">
+  <div class="niveau n1">Exercice 1 — Calculez les 3 équilibres</div>
+  <div class="section-title">À partir des données brutes de Métalux</div>
+  <div class="section-sub">Retrouvez les composantes dans le mémo et calculez. Chaque étape se débloque après validation. Tolérance ±2 k€.</div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="donnees-card">
+    <div class="donnees-title">📋 Données Métalux 2023 (k€)</div>
+    <div class="donnees-grid">
+      <div>
+        <div class="donnee-row"><span class="donnee-label">Capitaux propres</span><span class="donnee-value">256</span></div>
+        <div class="donnee-row"><span class="donnee-label">Emprunts MLT</span><span class="donnee-value">580</span></div>
+        <div class="donnee-row"><span class="donnee-label">Actif immobilisé net</span><span class="donnee-value">635</span></div>
+        <div class="donnee-row"><span class="donnee-label">Stocks</span><span class="donnee-value">480</span></div>
+      </div>
+      <div>
+        <div class="donnee-row"><span class="donnee-label">Créances clients + autres</span><span class="donnee-value">460</span></div>
+        <div class="donnee-row"><span class="donnee-label">Dettes d'exploitation</span><span class="donnee-value">669</span></div>
+        <div class="donnee-row"><span class="donnee-label">Disponibilités</span><span class="donnee-value">12</span></div>
+        <div class="donnee-row"><span class="donnee-label">Découvert bancaire</span><span class="donnee-value">82</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sig-step" id="step1">
+    <div class="sig-step-header"><div class="sig-step-num" style="background:var(--green)">1</div><div><div class="sig-step-title">Ressources stables</div><div class="sig-step-sub">Quelles données additionner pour les ressources longues ?</div></div></div>
+    <div class="sig-step-body">
+      <div class="input-row"><div class="input-label">Ressources stables =</div><input class="input-field" id="r1" type="number" placeholder="?" oninput="resetR(1)"><span class="input-unit">k€</span></div>
+      <div class="step-feedback" id="fb1"></div>
+      <button class="step-check" onclick="checkStep(1,836,'✓ Calcul : 256 + 580 = 836 k€. CP + emprunts MLT = ressources mobilisées à long terme.',2)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step2">
+    <div class="sig-step-header"><div class="sig-step-num" style="background:var(--green)">2</div><div><div class="sig-step-title">Fonds de roulement (FR)</div><div class="sig-step-sub">Ressources stables moins les emplois stables</div></div></div>
+    <div class="sig-step-body">
+      <div class="input-row"><div class="input-label">FR =</div><input class="input-field" id="r2" type="number" placeholder="?" oninput="resetR(2)"><span class="input-unit">k€</span></div>
+      <div class="step-feedback" id="fb2"></div>
+      <button class="step-check" onclick="checkStep(2,201,'✓ Calcul : 836 − 635 = +201 k€. FR positif — les ressources longues couvrent les actifs longs avec 201 k€ de marge. Mais est-ce suffisant ?',3)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step3">
+    <div class="sig-step-header"><div class="sig-step-num" style="background:var(--gold)">3</div><div><div class="sig-step-title">Total besoins du cycle</div><div class="sig-step-sub">Ce que le cycle d'exploitation immobilise en cash</div></div></div>
+    <div class="sig-step-body">
+      <div class="input-row"><div class="input-label">Total besoins =</div><input class="input-field" id="r3" type="number" placeholder="?" oninput="resetR(3)"><span class="input-unit">k€</span></div>
+      <div class="step-feedback" id="fb3"></div>
+      <button class="step-check" onclick="checkStep(3,940,'✓ Calcul : 480 + 460 = 940 k€. Stock bloqué + créances en attente. Énorme pour 3 200 k€ de CA.',4)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step4">
+    <div class="sig-step-header"><div class="sig-step-num" style="background:var(--gold)">4</div><div><div class="sig-step-title">Besoin en fonds de roulement (BFR)</div><div class="sig-step-sub">Besoins du cycle moins les ressources du cycle</div></div></div>
+    <div class="sig-step-body">
+      <div class="input-row"><div class="input-label">BFR =</div><input class="input-field" id="r4" type="number" placeholder="?" oninput="resetR(4)"><span class="input-unit">k€</span></div>
+      <div class="step-feedback" id="fb4"></div>
+      <button class="step-check" onclick="checkStep(4,271,'✓ Calcul : 940 − 669 = +271 k€. Le cycle consomme 271 k€ en permanence. Le FR de 201 k€ ne suffit pas — il manque 70 k€.',5)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step5">
+    <div class="sig-step-header"><div class="sig-step-num" style="background:var(--red)">5</div><div><div class="sig-step-title">Trésorerie nette — méthode 1</div><div class="sig-step-sub">FR minus BFR</div></div></div>
+    <div class="sig-step-body">
+      <div class="input-row"><div class="input-label">Trésorerie nette =</div><input class="input-field" id="r5" type="number" placeholder="?" oninput="resetR(5)"><span class="input-unit">k€</span></div>
+      <div class="step-feedback" id="fb5"></div>
+      <button class="step-check" onclick="checkStep(5,-70,'✓ Calcul : 201 − 271 = −70 k€. Le BFR dépasse le FR de 70 k€ — ce déficit est comblé par le découvert. Trésorerie structurellement négative.',6)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step6">
+    <div class="sig-step-header"><div class="sig-step-num" style="background:var(--red)">6</div><div><div class="sig-step-title">Vérification — méthode 2</div><div class="sig-step-sub">Disponibilités moins découvert bancaire</div></div></div>
+    <div class="sig-step-body">
+      <div class="input-row"><div class="input-label">Trésorerie nette (vérif.) =</div><input class="input-field" id="r6" type="number" placeholder="?" oninput="resetR(6)"><span class="input-unit">k€</span></div>
+      <div class="step-feedback" id="fb6"></div>
+      <button class="step-check" onclick="checkStep(6,-70,'✓ Calcul : 12 − 82 = −70 k€. Identique à la méthode 1 — le bilan est cohérent. Métalux a 12 k€ en banque mais 82 k€ de découvert.',null)">Vérifier</button>
+    </div>
+  </div>
+
+  <button class="btn btn-next" id="btn-ex2" style="display:none" onclick="switchTabByName('ex2')">Exercice 2 — Interpréter →</button>
+  <div style="height:10px"></div>
+</div>
+
+<!-- EX2 — Interpréter, questions mélangées, auto-correction -->
+<div id="pane-ex2" class="pane">
+  <div class="niveau n2">Exercice 2 — Interprétez les équilibres</div>
+  <div class="section-title">Que signifient ces chiffres pour Métalux ?</div>
+  <div class="section-sub">La correction s'affiche dès votre sélection. Questions mélangées.</div>
+  <div id="qlist-ex2"></div>
+  <button class="btn btn-next" style="margin-top:4px" onclick="switchTabByName('ex3')">Exercice 3 →</button>
+</div>
+
+<!-- EX3 — Posture consultant, auto-correction -->
+<div id="pane-ex3" class="pane">
+  <div class="niveau n3">Exercice 3 — Posture consultant</div>
+  <div class="section-title">Luc veut réduire son BFR de 100 k€ en 6 mois</div>
+  <div class="section-sub">La correction s'affiche dès votre sélection.</div>
+  <div id="qlist-ex3"></div>
+  <button class="btn btn-next" style="margin-top:4px" onclick="buildSynthese();switchTabByName('synthese')">Voir ma synthèse →</button>
+</div>
+
+<!-- SYNTHÈSE -->
+<div id="pane-synthese" class="pane">
+  <div class="section-title">Votre synthèse</div>
+  <div class="section-sub">Bilan de vos exercices sur les grands équilibres.</div>
+  <div id="synthese-content"></div>
+  <button class="btn btn-next" onclick="window.location.href='../index.html'">Retour à l'accueil →</button>
+</div>
+
+<script>
+let stepsOk=0;
+const STEP_MAX=6;
+
+// EX2 — questions dans un ordre mélangé (BFR, impact levier, FR insuffisant, FR positif+tréso négative)
+const QN2=[
+  {q:"Le BFR de Métalux est de 271 k€. Quelle en est la principale cause ?",
+   choices:["Les dettes fournisseurs sont trop faibles","Le stock de 480 k€ et les créances de 460 k€ immobilisent 940 k€ de cash","Les emprunts bancaires sont trop élevés"],
+   ans:1,fb:"✓ 940 k€ de besoins (stock + créances) pour 669 k€ de ressources fournisseurs = BFR 271 k€. Stock bloqué 8 mois + délais clients 75j sont les coupables."},
+  {q:"Si Métalux réduit son stock de 200 k€, quel impact sur la trésorerie nette ?",
+   choices:["Aucun impact — le stock est au bilan, pas en trésorerie","La trésorerie s'améliore de 200 k€ : BFR 271→71 k€, tréso −70→+130 k€","Seulement si le stock est vendu comptant"],
+   ans:1,fb:"✓ Vendre du stock = encaisser du cash. BFR : 271 − 200 = 71 k€. Tréso : FR 201 − BFR 71 = +130 k€. Un seul levier peut transformer la situation."},
+  {q:"Le FR est positif (+201 k€) mais la trésorerie est négative (−70 k€). Comment est-ce possible ?",
+   choices:["C'est une erreur de calcul — FR positif implique trésorerie positive","Le BFR (271 k€) dépasse le FR (201 k€) — l'exploitation consomme plus que le FR peut couvrir","Le FR positif signifie que l'entreprise est solvable — la tréso n'a pas d'importance"],
+   ans:1,fb:"✓ FR positif ≠ trésorerie positive. Si BFR > FR, il manque du cash. 271 − 201 = 70 k€ de déficit comblé par le découvert. Piège classique."},
+  {q:"Le FR de Métalux est de 201 k€. Est-ce suffisant ?",
+   choices:["Oui — FR positif signifie bonne gestion","Non — le FR représente 6,3% du CA seulement. Le BFR le dépasse et la tréso reste négative.","Oui — tant que le FR est positif, il n'y a pas de risque"],
+   ans:1,fb:"✓ FR / CA = 201 / 3 200 = 6,3%. Très faible. Le FR doit idéalement couvrir le BFR. Chez Métalux, insuffisant de 70 k€."},
+];
+
+// EX3 — posture consultant, auto-correction
+const QN3=[
+  {q:"Pour réduire le stock de 100 k€, quelle est la meilleure approche ?",
+   choices:["Acheter moins de matières et écouler les stocks existants en priorité","Négocier des délais de paiement plus longs avec AluFrance","Augmenter les prix de vente pour compenser"],
+   ans:0,fb:"✓ Réduire les achats + écouler le stock libère du cash immédiatement. 480 k€ de stock = ~55 jours de conso vs norme 25j. Viser 25j = libérer ~250 k€."},
+  {q:"Pour réduire les créances clients, quelle négociation avec Promobuild ?",
+   choices:["Accepter un escompte de 2% pour paiement à 30j au lieu de 75j","Facturer plus souvent pour multiplier les encaissements","Exiger des acomptes sur chaque commande"],
+   ans:0,fb:"✓ Un escompte 2% pour paiement rapide coûte moins cher que le découvert bancaire. Promobuild = 38% du CA. 75j→30j = ~175 k€ de trésorerie libérée."},
+  {q:"Pour améliorer le FR sans nouvel emprunt, quelle action proposer à Luc ?",
+   choices:["Augmenter le capital en demandant un apport aux associés","Vendre les machines pour réduire l'actif immobilisé","Réduire les charges fixes pour améliorer le résultat"],
+   ans:0,fb:"✓ Apport capital → CP + → ressources stables + → FR +. Sans alourdir la dette. Réduire les charges améliore le résultat mais pas directement le FR."},
+];
+
+let ex2Scores=new Array(QN2.length).fill(null);
+let ex3Scores=new Array(QN3.length).fill(null);
+const MAX=STEP_MAX+QN2.length+QN3.length;
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');document.getElementById('pane-'+id).classList.add('on');
+  document.getElementById('score-bar').style.display=(id==='memo'||id==='synthese')?'none':'flex';
+  updateScoreBar();
+}
+function switchTabByName(id){
+  const ids=['memo','ex1','ex2','ex3','synthese'];
+  document.querySelectorAll('.tab').forEach((t,i)=>{if(ids[i]===id)switchTab(id,t);});
+}
+function updateScoreBar(){
+  const total=stepsOk+ex2Scores.filter(v=>v===true).length+ex3Scores.filter(v=>v===true).length;
+  document.getElementById('score-num').textContent=total;
+  document.getElementById('score-label').textContent='/ '+MAX+' points';
+  document.getElementById('score-pct').textContent=Math.round(total/MAX*100)+'%';
+}
+
+function resetR(n){
+  document.getElementById('fb'+n).className='step-feedback';
+  document.getElementById('r'+n).classList.remove('correct','wrong');
+}
+function checkStep(n,expected,fbOk,next){
+  const v=parseFloat(document.getElementById('r'+n).value);
+  const fb=document.getElementById('fb'+n);
+  if(isNaN(v)){fb.className='step-feedback ko';fb.innerHTML='Entrez une valeur.';return;}
+  if(Math.abs(v-expected)<=2){
+    document.getElementById('r'+n).classList.add('correct');
+    fb.className='step-feedback ok';fb.innerHTML=fbOk;
+    stepsOk++;updateScoreBar();
+    document.getElementById('progress-fill').style.width=Math.round(stepsOk/STEP_MAX*100)+'%';
+    document.querySelector('#step'+n+' .step-check').disabled=true;
+    if(next){setTimeout(()=>{document.getElementById('step'+next).classList.remove('locked');},600);}
+    else{setTimeout(()=>{document.getElementById('btn-ex2').style.display='block';},600);}
+  }else{
+    document.getElementById('r'+n).classList.add('wrong');
+    fb.className='step-feedback ko';fb.innerHTML='✗ Pas tout à fait. Relisez les données brutes et retrouvez les bons postes à utiliser.';
+  }
+}
+
+function buildEx2(){
+  const c=document.getElementById('qlist-ex2');c.innerHTML='';
+  QN2.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    q.choices.forEach((ch,ci)=>{btns+=`<button class="q-btn" data-val="${ci}" onclick="handleQ(this,${i},'ex2')">${ch}</button>`;});
+    card.innerHTML=`<div class="q-header"><div class="q-num">${i+1}</div><div class="q-text">${q.q}</div></div><div class="q-choices" id="ex2-c-${i}">${btns}</div><div class="q-feedback" id="ex2-f-${i}"></div>`;
+    c.appendChild(card);
+  });
+}
+function buildEx3(){
+  const c=document.getElementById('qlist-ex3');c.innerHTML='';
+  QN3.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    q.choices.forEach((ch,ci)=>{btns+=`<button class="q-btn" data-val="${ci}" onclick="handleQ(this,${i},'ex3')">${ch}</button>`;});
+    card.innerHTML=`<div class="q-header"><div class="q-num">${i+1}</div><div class="q-text">${q.q}</div></div><div class="q-choices" id="ex3-c-${i}">${btns}</div><div class="q-feedback" id="ex3-f-${i}"></div>`;
+    c.appendChild(card);
+  });
+}
+
+function handleQ(btn,idx,exId){
+  if(btn.classList.contains('correct')||btn.classList.contains('dimmed'))return;
+  const qs=exId==='ex2'?QN2:QN3;
+  const scores=exId==='ex2'?ex2Scores:ex3Scores;
+  const q=qs[idx];const fb=document.getElementById(exId+'-f-'+idx);
+  const choices=document.querySelectorAll(`#${exId}-c-${idx} .q-btn`);
+  choices.forEach(b=>{
+    if(parseInt(b.dataset.val)===q.ans){b.classList.remove('selected');b.classList.add('correct');}
+    else if(b===btn){b.classList.remove('selected');b.classList.add('wrong');}
+    else{b.classList.add('dimmed');}
+  });
+  const isOk=parseInt(btn.dataset.val)===q.ans;
+  scores[idx]=isOk;
+  fb.className=isOk?'q-feedback show ok':'q-feedback show ko';
+  fb.innerHTML=q.fb;
+  updateScoreBar();
+}
+
+/* SYNTHÈSE */
+function buildSynthese(){
+  const ok2=ex2Scores.filter(v=>v===true).length;
+  const ok3=ex3Scores.filter(v=>v===true).length;
+  const total=stepsOk+ok2+ok3;
+  const pct=Math.round(total/MAX*100);
+  const scoreColor=pct>=80?'#27500A':pct>=60?'#854F0B':'#791F1F';
+  const scoreBg=pct>=80?'#EAF3DE':pct>=60?'#f9eed8':'#FCEBEB';
+  const maitrise=[];const renforcer=[];
+
+  if(stepsOk>=4)maitrise.push('Calculer le FR, BFR et trésorerie nette à partir des données brutes');
+  else renforcer.push('Calcul — revoir : ressources stables, FR = RS−Immo, BFR = besoins−dettes exploitation');
+  if(ex2Scores[2]===true)maitrise.push('Comprendre le paradoxe FR positif + trésorerie négative');
+  else renforcer.push('FR positif ≠ trésorerie positive. Si BFR > FR → déficit = découvert bancaire');
+  if(ex2Scores[1]===true)maitrise.push('Simuler l\'impact d\'un levier sur la trésorerie');
+  else renforcer.push('Leviers BFR — vente de stock ou réduction délai client libèrent directement du cash');
+  if(ok3>=2)maitrise.push('Posture consultant — recommander les bonnes actions BFR');
+  else renforcer.push('Actions BFR — stock (acheter moins), créances (escompte Promobuild), FR (apport capital)');
+
+  let html=`<div class="synthese-card">
+    <div class="synthese-header" style="background:${scoreBg}">
+      <div class="synthese-score-big" style="color:${scoreColor}">${pct}%</div>
+      <div><strong style="color:${scoreColor};font-size:15px">${total} / ${MAX} points</strong><br><span style="font-size:13px;color:${scoreColor}">${pct>=80?'Excellent !':pct>=60?'Bon niveau':'À renforcer'}</span></div>
+    </div>
+    <div class="synthese-body">`;
+  if(maitrise.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#27500A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">✓ Maîtrisé</div>`;
+    maitrise.forEach(m=>html+=`<div class="synthese-row s-ok">✅ <span>${m}</span></div>`);
+  }
+  if(renforcer.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#854F0B;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 2px">→ À renforcer</div>`;
+    renforcer.forEach(r=>html+=`<div class="synthese-row s-ko">📌 <span>${r}</span></div>`);
+  }
+  html+=`</div></div>`;
+  document.getElementById('synthese-content').innerHTML=html;
+  saveScoreLS('ex09',total,MAX);
+}
+
+function saveScoreLS(key,score,max){
+  try{localStorage.setItem('metalux_'+key,JSON.stringify({score,max,date:new Date().toLocaleDateString('fr-FR'),pct:Math.round(score/max*100)}));}catch(e){}
+}
+
+buildEx2();buildEx3();
+</script>
+</body>
+</html>

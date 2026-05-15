@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#6B7C5C">
+<title>Métalux — Les SIG</title>
+<style>
+:root{
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;--green-dark:#4a5a3d;
+  --gold:#C17F24;--gold-light:#f9eed8;--gold-dark:#8a5a18;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:40px}
+
+.app-header{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:2px}
+.app-header p{font-size:12px;color:rgba(255,255,255,.65)}
+.tab-bar{display:flex;gap:0;padding:0;border-top:1px solid rgba(255,255,255,.15);overflow-x:auto;scrollbar-width:none;margin-top:10px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+
+.score-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px}
+.score-num{font-size:20px;font-weight:700;color:var(--green)}
+.score-label{color:var(--text2);flex:1}
+.score-pct{font-size:12px;font-weight:600;color:var(--text3)}
+
+.pane{display:none;padding:16px 16px 0}
+.pane.on{display:block}
+.section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+.niveau{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;margin-bottom:12px}
+.n1{background:#EAF3DE;color:#27500A}
+.n2{background:var(--gold-light);color:var(--gold-dark)}
+.n3{background:var(--red-light);color:var(--red)}
+
+/* MÉMO */
+.cascade{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.cascade-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px}
+.cascade-left{display:flex;align-items:center;gap:8px}
+.cascade-op{font-size:14px;font-weight:800;width:16px;text-align:center;flex-shrink:0}
+.cascade-label{font-size:13px;font-weight:500}
+.cascade-label.bold{font-weight:700}
+.cascade-value{font-size:13px;font-weight:700;white-space:nowrap}
+.c-ca{background:#fff}.c-ca .cascade-value{color:#3B6D11}
+.c-warn{background:var(--gold-light)}.c-warn .cascade-value{color:#854F0B}
+.c-sub{background:var(--green-light)}.c-sub .cascade-label,.c-sub .cascade-value{color:var(--green-dark)}
+.c-alert{background:var(--gold-light)}.c-alert .cascade-label{color:var(--gold-dark)}.c-alert .cascade-value{color:#854F0B}
+.c-total{background:var(--green)}.c-total .cascade-label{color:#fff;font-weight:700}.c-total .cascade-value{color:#ffb3b3}
+.cascade-cat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:4px 14px}
+.badge-sm{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:4px;background:var(--gold-light);color:var(--gold-dark)}
+
+.aide-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:14px}
+.aide-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.aide-row{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);padding:5px 0;border-bottom:.5px solid var(--border);line-height:1.5}
+.aide-row:last-child{border-bottom:none}
+.aide-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+
+/* QCM */
+.q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.q-header{padding:13px 14px;display:flex;align-items:flex-start;gap:10px}
+.q-num{width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.q-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.q-choices{display:flex;flex-direction:column;gap:8px;padding:0 14px 13px}
+.q-btn{padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:2px solid var(--border);background:var(--bg);color:var(--text);text-align:left;transition:all .15s;line-height:1.3}
+.q-btn:active{transform:scale(.98)}
+.q-btn.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark);border-width:3px;font-weight:600;box-shadow:0 2px 8px rgba(107,124,92,.25)}
+.q-btn.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none;border-width:3px}
+.q-btn.wrong{border-color:var(--red);background:var(--red-light);color:#791F1F;pointer-events:none;border-width:2px;opacity:.7}
+.q-btn.dimmed{opacity:.25;pointer-events:none}
+.q-feedback{padding:8px 14px 12px;font-size:12px;line-height:1.5;display:none;border-radius:0 0 8px 8px}
+.q-feedback.show.ok{display:block;background:#EAF3DE;color:#27500A}
+.q-feedback.show.ko{display:block;background:var(--red-light);color:#791F1F}
+
+/* RECONSTITUTION SIG */
+.donnees-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:16px}
+.donnees-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.donnee-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:.5px solid var(--border);font-size:13px}
+.donnee-row:last-child{border-bottom:none}
+.donnee-label{color:var(--text2)}
+.donnee-value{font-weight:700;color:var(--text)}
+
+.sig-step{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px;transition:opacity .3s}
+.sig-step.locked{opacity:.4;pointer-events:none}
+.sig-step-header{padding:12px 14px;display:flex;align-items:center;gap:10px}
+.sig-step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.sig-step-title{font-size:14px;font-weight:600;color:var(--text)}
+.sig-step-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.sig-step-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+
+.input-row{display:flex;align-items:center;gap:8px}
+.input-label{font-size:13px;color:var(--text2);flex:1;line-height:1.4}
+.input-field{width:110px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;text-align:right;background:var(--bg2);color:var(--text);-moz-appearance:textfield}
+.input-field::-webkit-inner-spin-button{-webkit-appearance:none}
+.input-field:focus{outline:none;border-color:var(--green);background:var(--green-light)}
+.input-field.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none}
+.input-field.wrong{border-color:var(--red);background:var(--red-light);color:#791F1F}
+.input-unit{font-size:12px;color:var(--text3);white-space:nowrap}
+.step-feedback{font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;display:none}
+.step-feedback.ok{display:block;background:#EAF3DE;color:#27500A}
+.step-feedback.ko{display:block;background:var(--red-light);color:#791F1F}
+.step-check{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:#fff;width:100%}
+
+/* SYNTHÈSE */
+.synthese-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.synthese-header{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.synthese-score-big{font-size:30px;font-weight:800}
+.synthese-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.synthese-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.4}
+.s-ok{background:#EAF3DE}
+.s-ko{background:var(--gold-light)}
+
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s}
+
+.btn{padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid;min-height:46px;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-next{background:var(--green);color:#fff;border-color:var(--green);width:100%;margin-bottom:16px;padding:13px}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Métalux — Les SIG</h1>
+  <p>Soldes Intermédiaires de Gestion</p>
+  <div class="tab-bar">
+    <button class="tab on" onclick="switchTab('memo',this)">Mémo</button>
+    <button class="tab" onclick="switchTab('ex1',this)">Exercice 1 · Comprendre</button>
+    <button class="tab" onclick="switchTab('ex2',this)">Exercice 2 · Reconstituer</button>
+    <button class="tab" onclick="switchTab('synthese',this)">Synthèse</button>
+  </div>
+</div>
+
+<div class="score-bar" id="score-bar" style="display:none">
+  <span class="score-num" id="score-num">0</span>
+  <span class="score-label" id="score-label">points</span>
+  <span class="score-pct" id="score-pct"></span>
+</div>
+
+<!-- MÉMO -->
+<div id="pane-memo" class="pane on">
+  <div class="section-title">La cascade SIG de Métalux</div>
+  <div class="section-sub">Chaque solde répond à une question. Repérez où la valeur disparaît — mémorisez la logique, pas les chiffres.</div>
+
+  <div class="cascade">
+    <div class="cascade-row c-ca">
+      <div class="cascade-left"><span class="cascade-op" style="color:#3B6D11">+</span><span class="cascade-label bold">Chiffre d'affaires</span></div>
+      <span class="cascade-value">3 200 k€</span>
+    </div>
+    <div class="cascade-cat">→ Marge brute</div>
+    <div class="cascade-row c-warn">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--red)">−</span><span class="cascade-label">Coût des matières consommées</span></div>
+      <span class="cascade-value">2 098 k€ <span class="badge-sm">65,6% ⚠</span></span>
+    </div>
+    <div class="cascade-row c-sub">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--green-dark)">=</span><span class="cascade-label bold">Marge brute</span></div>
+      <span class="cascade-value">1 102 k€ <span class="badge-sm">34,4%</span></span>
+    </div>
+    <div class="cascade-cat">→ Valeur ajoutée</div>
+    <div class="cascade-row c-ca">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--red)">−</span><span class="cascade-label">Charges externes</span></div>
+      <span class="cascade-value">480 k€</span>
+    </div>
+    <div class="cascade-row c-sub">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--green-dark)">=</span><span class="cascade-label bold">Valeur ajoutée (VA)</span></div>
+      <span class="cascade-value">622 k€ <span class="badge-sm">19,4%</span></span>
+    </div>
+    <div class="cascade-cat">→ EBE</div>
+    <div class="cascade-row c-ca">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--red)">−</span><span class="cascade-label">Charges de personnel + Impôts & taxes</span></div>
+      <span class="cascade-value">524 k€</span>
+    </div>
+    <div class="cascade-row c-alert">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--gold-dark)">=</span><span class="cascade-label bold">EBE</span></div>
+      <span class="cascade-value">98 k€ <span class="badge-sm">3,1% ⚠</span></span>
+    </div>
+    <div class="cascade-cat">→ REX</div>
+    <div class="cascade-row c-ca">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--red)">−</span><span class="cascade-label">Dotations aux amortissements</span></div>
+      <span class="cascade-value">88 k€</span>
+    </div>
+    <div class="cascade-row c-alert">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--gold-dark)">=</span><span class="cascade-label bold">Résultat d'exploitation (REX)</span></div>
+      <span class="cascade-value">+10 k€ <span class="badge-sm">0,3%</span></span>
+    </div>
+    <div class="cascade-cat">→ Résultat net</div>
+    <div class="cascade-row c-ca">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--red)">−</span><span class="cascade-label">Charges financières + Exceptionnel</span></div>
+      <span class="cascade-value">52 k€</span>
+    </div>
+    <div class="cascade-row c-total">
+      <div class="cascade-left"><span class="cascade-op" style="color:var(--gold)">=</span><span class="cascade-label bold">RÉSULTAT NET</span></div>
+      <span class="cascade-value">−42 k€</span>
+    </div>
+  </div>
+
+  <div class="aide-card">
+    <div class="aide-title">💡 Fiche d'aide — Ce que mesure chaque SIG</div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green)"></div><span><strong>Marge brute</strong> — Est-ce que j'achète bien et je vends à un bon prix ?</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green-mid)"></div><span><strong>Valeur ajoutée</strong> — Quelle richesse mon activité crée-t-elle ?</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--gold)"></div><span><strong>EBE</strong> — Mon exploitation génère-t-elle assez de cash pour vivre et rembourser ?</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green-dark)"></div><span><strong>REX</strong> — Mon cœur de métier est-il rentable durablement ?</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--red)"></div><span>Chez Métalux : la <strong>marge brute est la cause racine</strong> — tout s'effondre à partir de là</span></div>
+  </div>
+
+  <button class="btn btn-next" onclick="switchTabByName('ex1')">Commencer l'exercice 1 →</button>
+</div>
+
+<!-- EXERCICE 1 — QCM mélangé -->
+<div id="pane-ex1" class="pane">
+  <div class="niveau n1">Exercice 1 — Comprendre les SIG</div>
+  <div class="section-title">8 questions sur les SIG de Métalux</div>
+  <div class="section-sub">Questions mélangées — la correction s'affiche dès votre sélection.</div>
+  <div id="qlist-ex1"></div>
+  <button class="btn btn-next" style="margin-top:4px" onclick="switchTabByName('ex2')">Exercice 2 →</button>
+</div>
+
+<!-- EXERCICE 2 — RECONSTITUTION -->
+<div id="pane-ex2" class="pane">
+  <div class="niveau n2">Exercice 2 — Reconstituez les SIG</div>
+  <div class="section-title">Calculez chaque solde à partir des données brutes</div>
+  <div class="section-sub">Les données ci-dessous sont vos seuls outils. Retrouvez la formule et calculez. Chaque niveau se débloque après validation.</div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="donnees-card">
+    <div class="donnees-title">📋 Données brutes Métalux 2023 (k€) — utilisez ces chiffres</div>
+    <div class="donnee-row"><span class="donnee-label">Chiffre d'affaires</span><span class="donnee-value">3 200</span></div>
+    <div class="donnee-row"><span class="donnee-label">Achats de matières consommées</span><span class="donnee-value">2 098</span></div>
+    <div class="donnee-row"><span class="donnee-label">Charges externes</span><span class="donnee-value">480</span></div>
+    <div class="donnee-row"><span class="donnee-label">Charges de personnel</span><span class="donnee-value">486</span></div>
+    <div class="donnee-row"><span class="donnee-label">Impôts & taxes</span><span class="donnee-value">38</span></div>
+    <div class="donnee-row"><span class="donnee-label">Dotations aux amortissements</span><span class="donnee-value">88</span></div>
+    <div class="donnee-row"><span class="donnee-label">Charges financières</span><span class="donnee-value">32</span></div>
+    <div class="donnee-row"><span class="donnee-label">Résultat exceptionnel</span><span class="donnee-value">−20</span></div>
+  </div>
+
+  <div class="sig-step" id="step1">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green)">1</div>
+      <div><div class="sig-step-title">Marge brute</div><div class="sig-step-sub">Que retient-on après avoir payé les matières ?</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Marge brute =</div>
+        <input class="input-field" id="s1v" type="number" placeholder="?" oninput="resetStep(1)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="input-row">
+        <div class="input-label">En % du CA =</div>
+        <input class="input-field" id="s1p" type="number" step="0.1" placeholder="?" oninput="resetStep(1)">
+        <span class="input-unit">%</span>
+      </div>
+      <div class="step-feedback" id="fb1"></div>
+      <button class="step-check" onclick="checkStep(1)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step2">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green-mid)">2</div>
+      <div><div class="sig-step-title">Valeur ajoutée</div><div class="sig-step-sub">Quelle richesse l'activité crée-t-elle après les charges externes ?</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Valeur ajoutée =</div>
+        <input class="input-field" id="s2v" type="number" placeholder="?" oninput="resetStep(2)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="input-row">
+        <div class="input-label">En % du CA =</div>
+        <input class="input-field" id="s2p" type="number" step="0.1" placeholder="?" oninput="resetStep(2)">
+        <span class="input-unit">%</span>
+      </div>
+      <div class="step-feedback" id="fb2"></div>
+      <button class="step-check" onclick="checkStep(2)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step3">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--gold)">3</div>
+      <div><div class="sig-step-title">EBE — Excédent brut d'exploitation</div><div class="sig-step-sub">Après personnel et impôts — combien reste-t-il à l'entreprise ?</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">EBE =</div>
+        <input class="input-field" id="s3v" type="number" placeholder="?" oninput="resetStep(3)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="input-row">
+        <div class="input-label">En % du CA =</div>
+        <input class="input-field" id="s3p" type="number" step="0.1" placeholder="?" oninput="resetStep(3)">
+        <span class="input-unit">%</span>
+      </div>
+      <div class="step-feedback" id="fb3"></div>
+      <button class="step-check" onclick="checkStep(3)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step4">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--green-dark)">4</div>
+      <div><div class="sig-step-title">REX — Résultat d'exploitation</div><div class="sig-step-sub">Après les amortissements — le cœur de métier est-il rentable ?</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">REX =</div>
+        <input class="input-field" id="s4v" type="number" placeholder="?" oninput="resetStep(4)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb4"></div>
+      <button class="step-check" onclick="checkStep(4)">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="sig-step locked" id="step5">
+    <div class="sig-step-header">
+      <div class="sig-step-num" style="background:var(--red)">5</div>
+      <div><div class="sig-step-title">Résultat net</div><div class="sig-step-sub">Après le financier et l'exceptionnel — bénéfice ou perte ?</div></div>
+    </div>
+    <div class="sig-step-body">
+      <div class="input-row">
+        <div class="input-label">Résultat net =</div>
+        <input class="input-field" id="s5v" type="number" placeholder="?" oninput="resetStep(5)">
+        <span class="input-unit">k€</span>
+      </div>
+      <div class="step-feedback" id="fb5"></div>
+      <button class="step-check" onclick="checkStep(5)">Vérifier</button>
+    </div>
+  </div>
+
+  <button class="btn btn-next" id="btn-synthese" style="display:none" onclick="buildSynthese();switchTabByName('synthese')">Voir ma synthèse →</button>
+</div>
+
+<!-- SYNTHÈSE -->
+<div id="pane-synthese" class="pane">
+  <div class="section-title">Votre synthèse</div>
+  <div class="section-sub">Bilan de vos exercices sur les SIG.</div>
+  <div id="synthese-content"></div>
+  <button class="btn btn-next" onclick="window.location.href='../index.html'">Retour à l'accueil →</button>
+</div>
+
+<script>
+// QCM mélangé — questions dans un ordre non logique pour forcer la réflexion
+const QS=[
+  {q:"L'EBE de Métalux est de 98 k€ (3,1%). La norme est >8%. Que peut-on en déduire ?",
+   choices:["L'entreprise génère suffisamment de cash pour rembourser","L'EBE est trop faible — Métalux ne peut pas couvrir ses dettes de 662 k€","L'EBE n'a pas d'importance pour la santé financière"],
+   ans:1,fb:"✓ EBE 3,1% = critique. Avec 662k€ de dettes, il faudrait 6,7 ans d'EBE pour rembourser. La norme bancaire est 3 ans maximum."},
+  {q:"Quel SIG mesure ce que l'entreprise crée comme richesse grâce à son activité ET ses collaborateurs ?",
+   choices:["La marge brute","La valeur ajoutée","L'EBE"],
+   ans:1,fb:"✓ La VA mesure la richesse créée par l'entreprise. Elle se répartit entre les salariés, l'État et l'entreprise (EBE)."},
+  {q:"Le REX de Métalux est +10k€ mais le résultat net est −42k€. Qu'est-ce qui explique cet écart ?",
+   choices:["Les ventes ont baissé entre les deux calculs","Les charges financières (−32k€) et l'exceptionnel (−20k€) ont absorbé le REX","L'impôt sur les sociétés a tout absorbé"],
+   ans:1,fb:"✓ REX +10 − charges financières 32 − exceptionnel 20 = −42k€. La dette et un événement inhabituel ont basculé le résultat."},
+  {q:"La marge brute de Métalux est de 34,4%. La norme sectorielle est ~45%. Qu'est-ce que cela signifie ?",
+   choices:["Métalux achète trop cher ses matières ou vend pas assez cher — c'est la cause racine","C'est dans la norme — il n'y a pas de problème","La marge brute n'a pas d'impact sur le résultat net"],
+   ans:0,fb:"✓ 10 pts d'écart vs norme = 320k€ de marge manquante. Si la marge était à 45%, l'EBE passerait de 98k€ à ~418k€. La marge brute est le problème racine."},
+  {q:"Un sous-traitant facture 15k€ à Métalux. Dans quel SIG cela apparaît-il en déduction ?",
+   choices:["Marge brute (déduction des matières)","Valeur ajoutée (déduction des charges externes)","EBE (déduction du personnel)"],
+   ans:1,fb:"✓ La sous-traitance = charges externes → déduite de la marge brute pour calculer la VA."},
+  {q:"Luc vous dit : 'Mon exploitation est rentable mais je n'ai pas d'argent.' Quel SIG regardez-vous en priorité ?",
+   choices:["La marge brute","L'EBE — il mesure le cash réellement généré par l'exploitation","Le résultat net"],
+   ans:1,fb:"✓ L'EBE est le cash généré avant amortissements et éléments non cash. C'est lui qui dit si l'exploitation produit de la trésorerie."},
+  {q:"Les dotations aux amortissements de 88k€ sont déduites de quel SIG pour obtenir le REX ?",
+   choices:["De la marge brute","De la valeur ajoutée","De l'EBE"],
+   ans:2,fb:"✓ REX = EBE − Dotations aux amortissements. Les amortissements sont une charge calculée (pas cash) qui réduit la valeur des actifs."},
+  {q:"Quel est le signal le plus préoccupant dans les SIG de Métalux ?",
+   choices:["Le résultat net négatif de −42k€","La marge brute à 34,4% — cause racine de tous les problèmes","L'EBE insuffisant à 3,1%"],
+   ans:1,fb:"✓ La marge brute est la cause racine. Résultat net et EBE sont des conséquences. Corriger la marge (réviser les prix) améliore mécaniquement tous les autres SIG."},
+];
+
+let ex1Scores=new Array(QS.length).fill(null);
+let stepsOk=0;
+const STEP_MAX=5;
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');document.getElementById('pane-'+id).classList.add('on');
+  document.getElementById('score-bar').style.display=(id==='memo'||id==='synthese')?'none':'flex';
+  updateScoreBar();
+}
+function switchTabByName(id){
+  const ids=['memo','ex1','ex2','synthese'];
+  document.querySelectorAll('.tab').forEach((t,i)=>{if(ids[i]===id)switchTab(id,t);});
+}
+function updateScoreBar(){
+  const ex1ok=ex1Scores.filter(v=>v===true).length;
+  const total=ex1ok+stepsOk;
+  const max=QS.length+STEP_MAX;
+  document.getElementById('score-num').textContent=total;
+  document.getElementById('score-label').textContent='/ '+max+' points';
+  document.getElementById('score-pct').textContent=Math.round(total/max*100)+'%';
+}
+
+function buildEx1(){
+  const c=document.getElementById('qlist-ex1');c.innerHTML='';
+  QS.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    q.choices.forEach((ch,ci)=>{
+      btns+=`<button class="q-btn" data-val="${ci}" onclick="handleQ1(${i},${ci},this)">${ch}</button>`;
+    });
+    card.innerHTML=`<div class="q-header"><div class="q-num">${i+1}</div><div class="q-text">${q.q}</div></div><div class="q-choices" id="q1-c-${i}">${btns}</div><div class="q-feedback" id="q1-f-${i}"></div>`;
+    c.appendChild(card);
+  });
+}
+
+function handleQ1(qi,ci,btn){
+  if(btn.classList.contains('correct')||btn.classList.contains('dimmed'))return;
+  const choices=document.querySelectorAll(`#q1-c-${qi} .q-btn`);
+  choices.forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  // Auto-correct
+  const q=QS[qi];const fb=document.getElementById('q1-f-'+qi);
+  choices.forEach(b=>{
+    if(parseInt(b.dataset.val)===q.ans){b.classList.remove('selected');b.classList.add('correct');}
+    else if(b.classList.contains('selected')){b.classList.remove('selected');b.classList.add('wrong');}
+    else{b.classList.add('dimmed');}
+  });
+  if(ci===q.ans){
+    fb.className='q-feedback show ok';fb.innerHTML=q.fb;
+    ex1Scores[qi]=true;
+  }else{
+    fb.className='q-feedback show ko';fb.innerHTML='✗ '+q.fb;
+    ex1Scores[qi]=false;
+  }
+  updateScoreBar();
+}
+
+// RECONSTITUTION SIG
+const STEPS=[
+  null,
+  {val:1102,pct:34.4,fb:'✓ Calcul : 3 200 − 2 098 = 1 102 k€ soit 34,4% du CA. Norme ~45% — Métalux est 10 pts en dessous. Cause racine : matières trop chères ou prix de vente trop bas.',next:2},
+  {val:622,pct:19.4,fb:'✓ Calcul : 1 102 − 480 = 622 k€ soit 19,4% du CA. La VA se répartit entre les salariés (486k€), l\'État (38k€) et l\'entreprise (EBE = 98k€).',next:3},
+  {val:98,pct:3.1,fb:'✓ Calcul : 622 − 486 − 38 = 98 k€ soit 3,1% du CA. Critique — norme >8%. Avec 662k€ de dettes et 98k€ d\'EBE, remboursement = 6,7 ans. Norme bancaire = 3 ans max.',next:4},
+  {val:10,pct:null,fb:'✓ Calcul : 98 − 88 = +10 k€. L\'exploitation est juste à l\'équilibre. Les 88k€ d\'amortissements absorbent quasiment tout l\'EBE.',next:5},
+  {val:-42,pct:null,fb:'✓ Calcul : 10 − 32 − 20 = −42 k€. 1ère perte depuis 5 ans. Le poids des dettes (−32k€) et de l\'exceptionnel (−20k€) ont basculé le résultat dans le rouge.',next:null},
+];
+
+function resetStep(n){
+  document.getElementById('fb'+n).className='step-feedback';
+  document.querySelectorAll(`#step${n} .input-field`).forEach(f=>f.classList.remove('correct','wrong'));
+}
+
+function checkStep(n){
+  const s=STEPS[n];
+  const v=parseFloat(document.getElementById('s'+n+'v').value);
+  const pInput=document.getElementById('s'+n+'p');
+  const p=pInput?parseFloat(pInput.value):null;
+  const fb=document.getElementById('fb'+n);
+  const vOk=!isNaN(v)&&Math.abs(v-s.val)<=1;
+  const pOk=s.pct===null?true:(!isNaN(p)&&Math.abs(p-s.pct)<=0.5);
+
+  if(vOk&&pOk){
+    document.getElementById('s'+n+'v').classList.add('correct');
+    if(pInput)pInput.classList.add('correct');
+    fb.className='step-feedback ok';fb.innerHTML=s.fb;
+    stepsOk++;updateScoreBar();
+    updateProgress(n);
+    if(s.next){
+      setTimeout(()=>{document.getElementById('step'+s.next).classList.remove('locked');},700);
+    }else{
+      setTimeout(()=>{document.getElementById('btn-synthese').style.display='block';},700);
+    }
+    document.querySelector(`#step${n} .step-check`).disabled=true;
+  }else{
+    document.getElementById('s'+n+'v').classList.add('wrong');
+    if(pInput&&!pOk)pInput.classList.add('wrong');
+    fb.className='step-feedback ko';
+    let hint='✗ ';
+    if(!vOk)hint+='Le montant n\'est pas correct. Relisez les données et retrouvez la formule du mémo. ';
+    if(pInput&&!pOk)hint+='Le % = valeur / 3 200 × 100. ';
+    fb.innerHTML=hint;
+  }
+}
+
+function updateProgress(lastStep){
+  document.getElementById('progress-fill').style.width=Math.round(lastStep/STEP_MAX*100)+'%';
+}
+
+/* SYNTHÈSE */
+function buildSynthese(){
+  const ex1ok=ex1Scores.filter(v=>v===true).length;
+  const total=ex1ok+stepsOk;
+  const max=QS.length+STEP_MAX;
+  const pct=Math.round(total/max*100);
+  const scoreColor=pct>=80?'#27500A':pct>=60?'#854F0B':'#791F1F';
+  const scoreBg=pct>=80?'#EAF3DE':pct>=60?'#f9eed8':'#FCEBEB';
+  const maitrise=[];const renforcer=[];
+
+  if(ex1ok>=6)maitrise.push('Comprendre la logique de chaque SIG');
+  else renforcer.push('Logique des SIG — revoir ce que mesure chaque solde (mémo)');
+  if(ex1Scores[3]===true)maitrise.push('Identifier la cause racine (marge brute)');
+  else renforcer.push('Cause racine — la marge brute explique tous les autres problèmes');
+  if(stepsOk>=3)maitrise.push('Reconstituer les SIG à partir des données brutes');
+  else renforcer.push('Reconstitution — revoir les formules : MB → VA → EBE → REX → RN');
+  if(stepsOk>=5)maitrise.push('Calculer le % du CA pour chaque SIG');
+  else renforcer.push('Calcul en % du CA — valeur / 3 200 × 100');
+
+  let html=`<div class="synthese-card">
+    <div class="synthese-header" style="background:${scoreBg}">
+      <div class="synthese-score-big" style="color:${scoreColor}">${pct}%</div>
+      <div><strong style="color:${scoreColor};font-size:15px">${total} / ${max} points</strong><br><span style="font-size:13px;color:${scoreColor}">${pct>=80?'Excellent !':pct>=60?'Bon niveau':'À renforcer'}</span></div>
+    </div>
+    <div class="synthese-body">`;
+  if(maitrise.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#27500A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">✓ Maîtrisé</div>`;
+    maitrise.forEach(m=>html+=`<div class="synthese-row s-ok">✅ <span>${m}</span></div>`);
+  }
+  if(renforcer.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#854F0B;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 2px">→ À renforcer</div>`;
+    renforcer.forEach(r=>html+=`<div class="synthese-row s-ko">📌 <span>${r}</span></div>`);
+  }
+  html+=`</div></div>`;
+  document.getElementById('synthese-content').innerHTML=html;
+  saveScoreLS('ex04',total,max);
+}
+
+function saveScoreLS(key,score,max){
+  try{localStorage.setItem('metalux_'+key,JSON.stringify({score,max,date:new Date().toLocaleDateString('fr-FR'),pct:Math.round(score/max*100)}));}catch(e){}
+}
+
+buildEx1();
+</script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#6B7C5C">
+<title>Métalux — Impact des opérations</title>
+<style>
+:root{
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;--green-dark:#4a5a3d;
+  --gold:#C17F24;--gold-light:#f9eed8;--gold-dark:#8a5a18;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:40px}
+.app-header{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:2px}
+.app-header p{font-size:12px;color:rgba(255,255,255,.65)}
+.tab-bar{display:flex;gap:0;padding:0;border-top:1px solid rgba(255,255,255,.15);overflow-x:auto;scrollbar-width:none;margin-top:10px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+.score-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px}
+.score-num{font-size:20px;font-weight:700;color:var(--green)}
+.score-label{color:var(--text2);flex:1}
+.score-pct{font-size:12px;font-weight:600;color:var(--text3)}
+.pane{display:none;padding:16px 16px 0}
+.pane.on{display:block}
+.section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+.niveau{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;margin-bottom:12px}
+.n1{background:#EAF3DE;color:#27500A}
+.n2{background:var(--gold-light);color:var(--gold-dark)}
+.n3{background:var(--red-light);color:var(--red)}
+
+/* MÉMO */
+.rule-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.rule-card{border-radius:var(--radius-lg);overflow:hidden}
+.rule-header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.rule-title{font-size:14px;font-weight:700;color:#fff}
+.rule-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.2);color:#fff}
+.rule-body{background:var(--bg);padding:12px 16px;display:flex;flex-direction:column;gap:6px}
+.rule-line{display:flex;align-items:center;gap:10px;font-size:13px}
+.rule-doc{font-weight:700;min-width:50px}
+.rule-detail{color:var(--text2)}
+
+.aide-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:14px}
+.aide-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.aide-row{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);padding:5px 0;border-bottom:.5px solid var(--border);line-height:1.5}
+.aide-row:last-child{border-bottom:none}
+.aide-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+
+/* QCM multi & single */
+.q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.q-header{padding:13px 14px;display:flex;align-items:flex-start;gap:10px}
+.q-num{width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.q-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.q-choices-row{display:flex;gap:8px;padding:0 14px 4px;flex-wrap:wrap}
+.q-choices-col{display:flex;flex-direction:column;gap:8px;padding:0 14px 13px}
+.doc-btn{padding:9px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:2px solid;transition:all .15s;min-height:42px}
+.doc-btn:active{transform:scale(.96)}
+.doc-btn.selected{border-width:3px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);transform:scale(1.04)}
+.doc-btn.correct{pointer-events:none;border-width:3px}
+.doc-btn.wrong{pointer-events:none;border-width:2px;opacity:.5}
+.doc-btn.dimmed{opacity:.25;pointer-events:none}
+.q-btn{padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:2px solid var(--border);background:var(--bg);color:var(--text);text-align:left;transition:all .15s;line-height:1.3}
+.q-btn:active{transform:scale(.98)}
+.q-btn.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark);border-width:3px;font-weight:600;box-shadow:0 2px 8px rgba(107,124,92,.25)}
+.q-btn.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none;border-width:3px}
+.q-btn.wrong{border-color:var(--red);background:var(--red-light);color:#791F1F;pointer-events:none;border-width:2px;opacity:.7}
+.q-btn.dimmed{opacity:.25;pointer-events:none}
+.multi-hint{font-size:11px;color:var(--text3);padding:0 14px 6px;font-style:italic}
+.multi-check{margin:0 14px 13px;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:#fff;width:calc(100% - 28px)}
+.q-feedback{padding:8px 14px 12px;font-size:12px;line-height:1.5;display:none;border-radius:0 0 8px 8px}
+.q-feedback.show.ok{display:block;background:#EAF3DE;color:#27500A}
+.q-feedback.show.ko{display:block;background:var(--red-light);color:#791F1F}
+
+/* SYNTHÈSE */
+.synthese-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.synthese-header{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.synthese-score-big{font-size:30px;font-weight:800}
+.synthese-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.synthese-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.4}
+.s-ok{background:#EAF3DE}
+.s-ko{background:var(--gold-light)}
+.btn{padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid;min-height:46px;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-next{background:var(--green);color:#fff;border-color:var(--green);width:100%;margin-bottom:16px;padding:13px}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>Métalux — Impact des opérations</h1>
+  <p>Quel document est impacté et comment ?</p>
+  <div class="tab-bar">
+    <button class="tab on" onclick="switchTab('memo',this)">Mémo</button>
+    <button class="tab" onclick="switchTab('ex1',this)">Exercice 1</button>
+    <button class="tab" onclick="switchTab('ex2',this)">Exercice 2</button>
+    <button class="tab" onclick="switchTab('ex3',this)">Exercice 3</button>
+    <button class="tab" onclick="switchTab('synthese',this)">Synthèse</button>
+  </div>
+</div>
+<div class="score-bar" id="score-bar" style="display:none">
+  <span class="score-num" id="score-num">0</span>
+  <span class="score-label" id="score-label">points</span>
+  <span class="score-pct" id="score-pct"></span>
+</div>
+
+<!-- MÉMO -->
+<div id="pane-memo" class="pane on">
+  <div class="section-title">La règle des 3 types d'opérations</div>
+  <div class="section-sub">Chaque opération impacte un ou plusieurs documents. Mémorisez la logique — pas les listes.</div>
+  <div class="rule-cards">
+    <div class="rule-card">
+      <div class="rule-header" style="background:var(--green)"><div class="rule-title">Exploitation</div><div class="rule-badge">CR + Bilan</div></div>
+      <div class="rule-body">
+        <div class="rule-line"><div class="rule-doc" style="color:var(--green)">CR</div><div class="rule-detail">→ Charge ou produit qui impacte le résultat</div></div>
+        <div class="rule-line"><div class="rule-doc" style="color:var(--gold)">Bilan</div><div class="rule-detail">→ Trésorerie (si payé/encaissé) ou créance/dette (si différé)</div></div>
+        <div class="rule-line"><div class="rule-doc" style="color:var(--text3)">Ex.</div><div class="rule-detail">Ventes, achats matières, salaires, loyers</div></div>
+      </div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-header" style="background:var(--gold)"><div class="rule-title">Investissement</div><div class="rule-badge">Bilan seul</div></div>
+      <div class="rule-body">
+        <div class="rule-line"><div class="rule-doc" style="color:var(--gold)">Bilan</div><div class="rule-detail">→ Actif immobilisé augmente / Trésorerie ou dette diminue</div></div>
+        <div class="rule-line"><div class="rule-doc" style="color:var(--green)">CR</div><div class="rule-detail">≠ Pas d'impact direct — seulement l'amortissement annuel</div></div>
+        <div class="rule-line"><div class="rule-doc" style="color:var(--text3)">Ex.</div><div class="rule-detail">Achat machine, véhicule, travaux, cession équipement</div></div>
+      </div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-header" style="background:var(--green-mid)"><div class="rule-title">Financement</div><div class="rule-badge">Bilan seul</div></div>
+      <div class="rule-body">
+        <div class="rule-line"><div class="rule-doc" style="color:var(--gold)">Bilan</div><div class="rule-detail">→ Dettes financières et trésorerie se modifient</div></div>
+        <div class="rule-line"><div class="rule-doc" style="color:var(--green)">CR</div><div class="rule-detail">≠ Pas d'impact (sauf les intérêts → charges financières)</div></div>
+        <div class="rule-line"><div class="rule-doc" style="color:var(--text3)">Ex.</div><div class="rule-detail">Emprunt, remboursement, apport capital, découvert</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="aide-card">
+    <div class="aide-title">💡 Fiche d'aide — Questions à se poser</div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green)"></div><span>Est-ce lié à l'<strong>activité quotidienne</strong> de Métalux ? → CR + Bilan</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--gold)"></div><span>Est-ce qu'on <strong>acquiert ou cède un actif durable</strong> ? → Bilan seul</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green-mid)"></div><span>Est-ce qu'on <strong>emprunte, rembourse le capital</strong> ? → Bilan seul</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--red)"></div><span>Les <strong>intérêts</strong> = exception : charge financière au CR ET sortie tréso au bilan</span></div>
+  </div>
+  <button class="btn btn-next" onclick="switchTabByName('ex1')">Commencer l'exercice 1 →</button>
+</div>
+
+<!-- EX1 — multi-select, ordre mélangé -->
+<div id="pane-ex1" class="pane">
+  <div class="niveau n1">Exercice 1 — CR seul / Bilan seul / CR + Bilan ?</div>
+  <div class="section-title">Quels documents cette opération impacte-t-elle ?</div>
+  <div class="section-sub">Questions mélangées — cochez tout ce qui est impacté puis validez.</div>
+  <div id="qlist-ex1"></div>
+  <button class="btn btn-next" style="margin-top:4px" onclick="switchTabByName('ex2')">Exercice 2 →</button>
+</div>
+
+<!-- EX2 — impact précis, auto-correction -->
+<div id="pane-ex2" class="pane">
+  <div class="niveau n2">Exercice 2 — Quel poste précis est impacté ?</div>
+  <div class="section-title">Identifiez l'impact précis sur les documents</div>
+  <div class="section-sub">La correction s'affiche dès votre sélection.</div>
+  <div id="qlist-ex2"></div>
+  <button class="btn btn-next" style="margin-top:4px" onclick="switchTabByName('ex3')">Exercice 3 →</button>
+</div>
+
+<!-- EX3 — posture consultant, auto-correction -->
+<div id="pane-ex3" class="pane">
+  <div class="niveau n3">Exercice 3 — Posture consultant</div>
+  <div class="section-title">Luc envisage une décision — quelles conséquences ?</div>
+  <div class="section-sub">La correction s'affiche dès votre sélection.</div>
+  <div id="qlist-ex3"></div>
+  <button class="btn btn-next" style="margin-top:4px" onclick="buildSynthese();switchTabByName('synthese')">Voir ma synthèse →</button>
+</div>
+
+<!-- SYNTHÈSE -->
+<div id="pane-synthese" class="pane">
+  <div class="section-title">Votre synthèse</div>
+  <div class="section-sub">Bilan de vos exercices sur l'impact des opérations.</div>
+  <div id="synthese-content"></div>
+  <button class="btn btn-next" onclick="window.location.href='../index.html'">Retour à l'accueil →</button>
+</div>
+
+<script>
+const DOC_STYLE={
+  'CR':{bg:'#e8ede3',txt:'#4a5a3d',brd:'#a8c090'},
+  'Bilan':{bg:'#f9eed8',txt:'#8a5a18',brd:'#e8c07a'}
+};
+
+// EX1 — ordre délibérément mélangé : Bilan seul, CR+Bilan, Bilan seul, CR+Bilan, CR+Bilan, Bilan seul, Bilan seul, CR+Bilan
+const QN1=[
+  {q:"Métalux achète un nouveau véhicule de pose pour 35 k€ au comptant",ans:['Bilan'],fb:"Bilan seul : actif immobilisé +35k€ / trésorerie −35k€. Pas de charge au CR — seulement l'amortissement annuel (~7k€/an)."},
+  {q:"Métalux vend 50 k€ de fenêtres à Bouygues (paiement à 60 jours)",ans:['CR','Bilan'],fb:"CR : produit d'exploitation +50k€. Bilan : créance client +50k€ (pas encore encaissé)."},
+  {q:"Métalux contracte un emprunt de 100 k€ auprès de sa banque",ans:['Bilan'],fb:"Bilan seul : trésorerie +100k€ / dettes financières +100k€. Aucun impact CR à ce stade."},
+  {q:"Métalux paie les salaires de décembre (40 k€)",ans:['CR','Bilan'],fb:"CR : charges de personnel +40k€. Bilan : trésorerie −40k€."},
+  {q:"Métalux reçoit 200 k€ de profilés alu d'AluFrance (paiement à 30 jours)",ans:['CR','Bilan'],fb:"CR : achats matières +200k€. Bilan : stock +200k€ / dette fournisseur +200k€. Trésorerie non impactée maintenant."},
+  {q:"Métalux rembourse 15 k€ du capital de son emprunt ce mois-ci",ans:['Bilan'],fb:"Bilan seul : dettes financières −15k€ / trésorerie −15k€. Les intérêts eux vont au CR."},
+  {q:"Métalux encaisse un virement de Promobuild (créance déjà enregistrée)",ans:['Bilan'],fb:"Bilan seul : trésorerie +X / créance −X. La vente était déjà au CR. L'encaissement ne change pas le résultat."},
+  {q:"Métalux constate l'amortissement annuel de la machine CNC (88 k€)",ans:['CR','Bilan'],fb:"CR : dotation amortissements +88k€. Bilan : valeur nette immo −88k€."},
+];
+
+// EX2 — impact précis, auto-correction immédiate
+const QN2=[
+  {q:"Métalux vend 100 k€ à la Mairie de Montpellier, encaissement immédiat. Impact précis ?",
+   choices:["CR +100k€ au CA / Bilan : trésorerie +100k€","CR +100k€ au CA / Bilan : créance client +100k€","Bilan seul : trésorerie +100k€"],
+   ans:0,fb:"✓ Encaissement immédiat → pas de créance, trésorerie augmente directement. Si paiement différé → créance au bilan."},
+  {q:"Métalux achète 50 k€ de profilés alu, paiement à 30 jours. Impact sur le bilan ?",
+   choices:["Trésorerie −50k€ / Stock +50k€","Stock +50k€ / Dette fournisseur +50k€","Uniquement une charge au CR"],
+   ans:1,fb:"✓ Paiement différé → pas de sortie de trésorerie immédiate. Stock +50k€ à l'actif / Dette fournisseur +50k€ au passif."},
+  {q:"Métalux rembourse 15 k€ d'emprunt ET verse 2 k€ d'intérêts. Quel document impacte les intérêts ?",
+   choices:["Bilan seul — tout est du financement","Les intérêts vont au CR (charges financières), le capital au bilan seul","CR seul pour les deux"],
+   ans:1,fb:"✓ Capital remboursé → Bilan seul. Intérêts → CR (charges financières) ET Bilan (trésorerie). Distinction fondamentale."},
+  {q:"Métalux vend son ancienne fraiseuse pour 20 k€ (valeur nette bilan : 5 k€). Impact ?",
+   choices:["Bilan : trésorerie +20k€ / Actif −5k€. CR : produit exceptionnel +15k€","Bilan seul : trésorerie +20k€ / Actif −20k€","CR seul : produit exceptionnel +20k€"],
+   ans:0,fb:"✓ Cession : bilan actif −5k€ (valeur nette) + tréso +20k€. Différence = +15k€ de plus-value → produit exceptionnel au CR."},
+];
+
+// EX3 — posture consultant, auto-correction
+const QN3=[
+  {q:'"Je veux acheter un atelier pour 400 k€ financé par emprunt. Quels impacts ?"',
+   choices:["CR : charge 400k€ immédiate / Bilan : actif +400k€","Bilan : actif immo +400k€ / dettes financières +400k€. CR : amortissement annuel ~20k€/an","Bilan seul : trésorerie +400k€"],
+   ans:1,fb:"✓ Investissement + emprunt = Bilan seul à la date d'achat. Chaque année : amortissement au CR (~20k€/an sur 20 ans) ET remboursement capital au bilan."},
+  {q:'"Je négocie avec Promobuild pour passer de 75j à 45j de délai. Quel impact ?"',
+   choices:["Améliore le résultat net au CR","Réduit les créances clients au bilan → libère ~267k€ de trésorerie","Aucun impact — c'est juste un délai"],
+   ans:1,fb:"✓ Encaisser 30 jours plus tôt = ~267k€ libérés (30/365 × 3 200k€). Créances bilan ↓, trésorerie ↑. CR non impacté."},
+  {q:'"Je veux augmenter les salaires de 5% l'an prochain. Impact chiffré ?"',
+   choices:["CR : charges personnel +24k€ (5% × 486k€) → résultat se dégrade d'autant","Bilan seul : capitaux propres diminuent","Aucun impact si l'activité augmente aussi"],
+   ans:0,fb:"✓ 5% × 486k€ = +24k€ de charges au CR. EBE passe de 98k€ à 74k€. Résultat se dégrade. Bilan aussi impacté lors du versement (trésorerie −)."},
+  {q:'"Je veux vendre 150 k€ de stock dormant. Quel impact sur ma trésorerie ?"',
+   choices:["Aucun — le stock était déjà dans le bilan","CR : produit de vente +150k€ / Bilan : stock −150k€ + trésorerie +150k€","Bilan seul : stock −150k€"],
+   ans:1,fb:"✓ La vente génère un produit au CR ET libère de la trésorerie. Stock bilan ↓, trésorerie ↑. C'est l'action prioritaire pour Métalux."},
+];
+
+let ex1Scores=new Array(QN1.length).fill(null);
+let ex2Scores=new Array(QN2.length).fill(null);
+let ex3Scores=new Array(QN3.length).fill(null);
+const MAX=QN1.length+QN2.length+QN3.length;
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');document.getElementById('pane-'+id).classList.add('on');
+  document.getElementById('score-bar').style.display=(id==='memo'||id==='synthese')?'none':'flex';
+  updateScoreBar();
+}
+function switchTabByName(id){
+  const ids=['memo','ex1','ex2','ex3','synthese'];
+  document.querySelectorAll('.tab').forEach((t,i)=>{if(ids[i]===id)switchTab(id,t);});
+}
+function updateScoreBar(){
+  const total=ex1Scores.filter(v=>v===true).length+ex2Scores.filter(v=>v===true).length+ex3Scores.filter(v=>v===true).length;
+  document.getElementById('score-num').textContent=total;
+  document.getElementById('score-label').textContent='/ '+MAX+' points';
+  document.getElementById('score-pct').textContent=Math.round(total/MAX*100)+'%';
+}
+
+/* EX1 — multi-select avec bouton vérifier */
+function buildEx1(){
+  const c=document.getElementById('qlist-ex1');c.innerHTML='';
+  QN1.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    ['CR','Bilan'].forEach(d=>{
+      const s=DOC_STYLE[d];
+      btns+=`<button class="doc-btn" data-doc="${d}" style="background:${s.bg};color:${s.txt};border-color:${s.brd}" onclick="toggleEx1(this)">${d}</button>`;
+    });
+    card.innerHTML=`<div class="q-header"><div class="q-num">${i+1}</div><div class="q-text">${q.q}</div></div><div class="q-choices-row" id="e1-c-${i}">${btns}</div><div class="multi-hint">Cochez tout ce qui est impacté</div><button class="multi-check" onclick="checkEx1q(${i})">Vérifier</button><div class="q-feedback" id="e1-f-${i}"></div>`;
+    c.appendChild(card);
+  });
+}
+function toggleEx1(btn){
+  if(btn.classList.contains('correct')||btn.classList.contains('wrong')||btn.classList.contains('dimmed'))return;
+  btn.classList.toggle('selected');
+}
+function checkEx1q(idx){
+  const q=QN1[idx];const fb=document.getElementById('e1-f-'+idx);
+  const choices=document.querySelectorAll(`#e1-c-${idx} .doc-btn`);
+  const expected=Array.isArray(q.ans)?q.ans:[q.ans];
+  let hasWrong=false;
+  choices.forEach(btn=>{
+    const isOk=expected.includes(btn.dataset.doc);
+    const sel=btn.classList.contains('selected');
+    if(isOk){btn.classList.remove('selected');btn.classList.add('correct');}
+    else if(sel){btn.classList.remove('selected');btn.classList.add('wrong');hasWrong=true;}
+    else{btn.classList.add('dimmed');}
+  });
+  ex1Scores[idx]=!hasWrong;
+  fb.className=hasWrong?'q-feedback show ko':'q-feedback show ok';
+  fb.innerHTML=(hasWrong?'✗ ':'✓ ')+q.fb;
+  updateScoreBar();
+}
+
+/* EX2 — auto-correction immédiate */
+function buildEx2(){
+  const c=document.getElementById('qlist-ex2');c.innerHTML='';
+  QN2.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    q.choices.forEach((ch,ci)=>{
+      btns+=`<button class="q-btn" data-val="${ci}" onclick="handleQ2(${i},${ci},this)">${ch}</button>`;
+    });
+    card.innerHTML=`<div class="q-header"><div class="q-num">${i+1}</div><div class="q-text">${q.q}</div></div><div class="q-choices-col" id="e2-c-${i}">${btns}</div><div class="q-feedback" id="e2-f-${i}"></div>`;
+    c.appendChild(card);
+  });
+}
+function handleQ2(idx,ci,btn){
+  if(btn.classList.contains('correct')||btn.classList.contains('dimmed'))return;
+  const q=QN2[idx];const fb=document.getElementById('e2-f-'+idx);
+  const choices=document.querySelectorAll(`#e2-c-${idx} .q-btn`);
+  choices.forEach(b=>{
+    if(parseInt(b.dataset.val)===q.ans){b.classList.remove('selected');b.classList.add('correct');}
+    else if(b===btn){b.classList.remove('selected');b.classList.add('wrong');}
+    else{b.classList.add('dimmed');}
+  });
+  const isOk=ci===q.ans;
+  ex2Scores[idx]=isOk;
+  fb.className=isOk?'q-feedback show ok':'q-feedback show ko';
+  fb.innerHTML=q.fb;
+  updateScoreBar();
+}
+
+/* EX3 — auto-correction immédiate */
+function buildEx3(){
+  const c=document.getElementById('qlist-ex3');c.innerHTML='';
+  QN3.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    q.choices.forEach((ch,ci)=>{
+      btns+=`<button class="q-btn" data-val="${ci}" onclick="handleQ3(${i},${ci},this)">${ch}</button>`;
+    });
+    card.innerHTML=`<div class="q-header"><div class="q-num">${i+1}</div><div class="q-text">${q.q}</div></div><div class="q-choices-col" id="e3-c-${i}">${btns}</div><div class="q-feedback" id="e3-f-${i}"></div>`;
+    c.appendChild(card);
+  });
+}
+function handleQ3(idx,ci,btn){
+  if(btn.classList.contains('correct')||btn.classList.contains('dimmed'))return;
+  const q=QN3[idx];const fb=document.getElementById('e3-f-'+idx);
+  const choices=document.querySelectorAll(`#e3-c-${idx} .q-btn`);
+  choices.forEach(b=>{
+    if(parseInt(b.dataset.val)===q.ans){b.classList.remove('selected');b.classList.add('correct');}
+    else if(b===btn){b.classList.remove('selected');b.classList.add('wrong');}
+    else{b.classList.add('dimmed');}
+  });
+  const isOk=ci===q.ans;
+  ex3Scores[idx]=isOk;
+  fb.className=isOk?'q-feedback show ok':'q-feedback show ko';
+  fb.innerHTML=q.fb;
+  updateScoreBar();
+}
+
+/* SYNTHÈSE */
+function buildSynthese(){
+  const ok1=ex1Scores.filter(v=>v===true).length;
+  const ok2=ex2Scores.filter(v=>v===true).length;
+  const ok3=ex3Scores.filter(v=>v===true).length;
+  const total=ok1+ok2+ok3;
+  const pct=Math.round(total/MAX*100);
+  const scoreColor=pct>=80?'#27500A':pct>=60?'#854F0B':'#791F1F';
+  const scoreBg=pct>=80?'#EAF3DE':pct>=60?'#f9eed8':'#FCEBEB';
+  const maitrise=[];const renforcer=[];
+
+  if(ok1>=6)maitrise.push('Identifier quels documents sont impactés par une opération');
+  else renforcer.push('CR+Bilan vs Bilan seul — revoir la règle des 3 types d\'opérations');
+  // Check specific correct answers
+  if(ex1Scores[2]===true&&ex1Scores[5]===true)maitrise.push('Distinguer le remboursement d\'emprunt (Bilan) des intérêts (CR+Bilan)');
+  else renforcer.push('Intérêts vs capital — les intérêts vont au CR, le remboursement du capital au Bilan seul');
+  if(ok2>=3)maitrise.push('Analyser l\'impact précis sur les postes du bilan et du CR');
+  else renforcer.push('Impact précis — revoir : encaissement immédiat vs différé, cession d\'actif');
+  if(ok3>=3)maitrise.push('Posture consultant — anticiper l\'impact chiffré d\'une décision');
+  else renforcer.push('Posture consultant — pratiquer : salaires +5%, vente stock, négociation délais');
+
+  let html=`<div class="synthese-card">
+    <div class="synthese-header" style="background:${scoreBg}">
+      <div class="synthese-score-big" style="color:${scoreColor}">${pct}%</div>
+      <div><strong style="color:${scoreColor};font-size:15px">${total} / ${MAX} points</strong><br><span style="font-size:13px;color:${scoreColor}">${pct>=80?'Excellent !':pct>=60?'Bon niveau':'À renforcer'}</span></div>
+    </div>
+    <div class="synthese-body">`;
+  if(maitrise.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#27500A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">✓ Maîtrisé</div>`;
+    maitrise.forEach(m=>html+=`<div class="synthese-row s-ok">✅ <span>${m}</span></div>`);
+  }
+  if(renforcer.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#854F0B;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 2px">→ À renforcer</div>`;
+    renforcer.forEach(r=>html+=`<div class="synthese-row s-ko">📌 <span>${r}</span></div>`);
+  }
+  html+=`</div></div>`;
+  document.getElementById('synthese-content').innerHTML=html;
+  saveScoreLS('ex07',total,MAX);
+}
+
+function saveScoreLS(key,score,max){
+  try{localStorage.setItem('metalux_'+key,JSON.stringify({score,max,date:new Date().toLocaleDateString('fr-FR'),pct:Math.round(score/max*100)}));}catch(e){}
+}
+
+buildEx1();buildEx2();buildEx3();
+</script>
+</body>
+</html>

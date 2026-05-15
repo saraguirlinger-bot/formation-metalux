@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#6B7C5C">
+<title>Métalux — Le compte de résultat</title>
+<style>
+:root{
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;--green-dark:#4a5a3d;
+  --gold:#C17F24;--gold-light:#f9eed8;--gold-dark:#8a5a18;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:40px}
+
+.app-header{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:2px}
+.app-header p{font-size:12px;color:rgba(255,255,255,.65)}
+.tab-bar{display:flex;gap:0;padding:0;border-top:1px solid rgba(255,255,255,.15);overflow-x:auto;scrollbar-width:none;margin-top:10px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+
+.score-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px}
+.score-num{font-size:20px;font-weight:700;color:var(--green)}
+.score-label{color:var(--text2);flex:1}
+.score-pct{font-size:12px;font-weight:600;color:var(--text3)}
+
+.pane{display:none;padding:16px 16px 0}
+.pane.on{display:block}
+.section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+.niveau{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;margin-bottom:12px}
+.n1{background:#EAF3DE;color:#27500A}
+.n2{background:var(--gold-light);color:var(--gold-dark)}
+.n3{background:var(--red-light);color:var(--red)}
+
+/* MÉMO CR */
+.cr-memo{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px}
+.cr-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:.5px solid var(--border)}
+.cr-row:last-child{border-bottom:none}
+.cr-left{display:flex;align-items:center;gap:10px}
+.cr-op{font-size:14px;font-weight:800;width:16px;text-align:center;flex-shrink:0}
+.cr-label{font-size:13px;color:var(--text)}
+.cr-label.bold{font-weight:700}
+.cr-value{font-size:13px;font-weight:700;white-space:nowrap}
+.cr-value.pos{color:#3B6D11}.cr-value.warn{color:#854F0B}.cr-value.neg{color:var(--red)}
+.cr-row.subtotal{background:var(--green-light)}
+.cr-row.result-courant{background:var(--gold)}.cr-row.result-courant .cr-label,.cr-row.result-courant .cr-op,.cr-row.result-courant .cr-value{color:#fff}
+.cr-row.result-net{background:var(--green)}.cr-row.result-net .cr-label,.cr-row.result-net .cr-op{color:#fff;font-weight:700}.cr-row.result-net .cr-value{color:#ffb3b3}
+.cr-row.alert{background:var(--gold-light)}
+.cr-cat{padding:5px 14px;background:var(--bg3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.badge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;margin-left:4px;background:var(--gold-light);color:var(--gold-dark)}
+.badge.red{background:var(--red-light);color:var(--red)}
+
+.aide-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:14px}
+.aide-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.aide-row{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);padding:5px 0;border-bottom:.5px solid var(--border);line-height:1.5}
+.aide-row:last-child{border-bottom:none}
+.aide-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+
+/* EX1 drag & drop */
+.op-bank{display:flex;flex-wrap:wrap;gap:8px;padding:14px;background:var(--bg);border-radius:var(--radius-lg);margin-bottom:16px;border:1px solid var(--border)}
+.op-card{padding:10px 14px;background:var(--bg2);border:2px solid var(--border);border-radius:var(--radius);font-size:13px;color:var(--text);cursor:pointer;transition:all .15s;user-select:none;line-height:1.3}
+.op-card:active{transform:scale(.97)}
+.op-card.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark);border-width:3px;font-weight:600;box-shadow:0 2px 8px rgba(107,124,92,.25)}
+.op-card.placed{opacity:.3;pointer-events:none;border-style:dashed}
+
+.cat-cols{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.cat-col{border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;border:1px solid var(--border);transition:transform .1s}
+.cat-col:active{transform:scale(.99)}
+.col-header{padding:12px 16px;display:flex;align-items:center;gap:10px}
+.col-header-name{font-size:15px;font-weight:700;color:#fff}
+.col-header-hint{font-size:12px;color:rgba(255,255,255,.7);margin-left:auto}
+.col-drop{min-height:56px;padding:10px;display:flex;flex-wrap:wrap;gap:6px;background:var(--bg)}
+.col-drop.highlight{background:var(--green-light)}
+.col-exploit .col-header{background:var(--green)}
+.col-fin .col-header{background:var(--green-mid)}
+.col-excep .col-header{background:var(--gold)}
+
+.placed-tag{padding:7px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;line-height:1.3}
+.placed-tag.pending{background:var(--green-light);color:var(--green-dark);border:1.5px solid #a8c090}
+.placed-tag.correct{background:#EAF3DE;color:#27500A;border:2px solid #97C459;pointer-events:none}
+.placed-tag.wrong{background:var(--red-light);color:#791F1F;border:2px solid #F09595;pointer-events:none}
+
+.feedback-box{padding:12px 14px;border-radius:var(--radius);margin-bottom:12px;font-size:13px;line-height:1.6;border:1px solid}
+.feedback-box.ok{background:#EAF3DE;color:#27500A;border-color:#97C459}
+.feedback-box.ko{background:var(--red-light);color:#791F1F;border-color:#F09595}
+.feedback-box.info{background:var(--green-light);color:var(--green-dark);border-color:#a8c090}
+
+/* QCM */
+.q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.q-header{padding:13px 14px;display:flex;align-items:flex-start;gap:10px}
+.q-num{width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.q-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.q-choices{display:flex;gap:8px;padding:0 14px 13px;flex-wrap:wrap}
+.doc-btn{padding:9px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:2px solid;transition:all .15s;min-height:42px}
+.doc-btn:active{transform:scale(.96)}
+.doc-btn.selected{border-width:3px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);transform:scale(1.03)}
+.doc-btn.correct{pointer-events:none;border-width:3px}
+.doc-btn.wrong{pointer-events:none;border-width:2px;opacity:.5}
+.doc-btn.dimmed{opacity:.25;pointer-events:none}
+.q-feedback{padding:8px 14px 12px;font-size:12px;line-height:1.5;display:none;border-radius:0 0 8px 8px}
+.q-feedback.show.ok{display:block;background:#EAF3DE;color:#27500A}
+.q-feedback.show.ko{display:block;background:var(--red-light);color:#791F1F}
+
+/* SYNTHÈSE */
+.synthese-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.synthese-header{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.synthese-score-big{font-size:30px;font-weight:800}
+.synthese-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.synthese-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.4}
+.s-ok{background:#EAF3DE}
+.s-ko{background:var(--gold-light)}
+
+.btn-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.btn{padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid;min-height:46px;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--green);color:#fff;border-color:var(--green);flex:1}
+.btn-secondary{background:var(--bg);color:var(--text2);border-color:var(--border)}
+.btn-next{background:var(--green);color:#fff;border-color:var(--green);width:100%;margin-bottom:16px;padding:13px}
+.instruction{background:var(--green-light);color:var(--green-dark);border-radius:var(--radius);padding:10px 13px;font-size:12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:8px;border:1px solid #a8c090;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Métalux — Le compte de résultat</h1>
+  <p>Exploitation · Financier · Exceptionnel</p>
+  <div class="tab-bar">
+    <button class="tab on" onclick="switchTab('memo',this)">Mémo</button>
+    <button class="tab" onclick="switchTab('ex1',this)">Exercice 1 · Classer</button>
+    <button class="tab" onclick="switchTab('ex2',this)">Exercice 2 · Analyser</button>
+    <button class="tab" onclick="switchTab('synthese',this)">Synthèse</button>
+  </div>
+</div>
+
+<div class="score-bar" id="score-bar" style="display:none">
+  <span class="score-num" id="score-num">0</span>
+  <span class="score-label" id="score-label">points</span>
+  <span class="score-pct" id="score-pct"></span>
+</div>
+
+<!-- MÉMO -->
+<div id="pane-memo" class="pane on">
+  <div class="section-title">Le CR de Métalux en cascade</div>
+  <div class="section-sub">3 niveaux de résultat. Repérez où se crée et où disparaît la valeur — sans regarder les chiffres si possible.</div>
+
+  <div class="cr-memo">
+    <div class="cr-cat">Exploitation</div>
+    <div class="cr-row">
+      <div class="cr-left"><span class="cr-op" style="color:#3B6D11">+</span><span class="cr-label">Chiffre d'affaires</span></div>
+      <span class="cr-value pos">3 200 k€</span>
+    </div>
+    <div class="cr-row alert">
+      <div class="cr-left"><span class="cr-op" style="color:var(--red)">−</span><span class="cr-label">Achats matières consommées</span></div>
+      <span class="cr-value warn">2 098 k€ <span class="badge">65,6% ⚠</span></span>
+    </div>
+    <div class="cr-row">
+      <div class="cr-left"><span class="cr-op" style="color:var(--red)">−</span><span class="cr-label">Charges externes + impôts & taxes</span></div>
+      <span class="cr-value">518 k€</span>
+    </div>
+    <div class="cr-row">
+      <div class="cr-left"><span class="cr-op" style="color:var(--red)">−</span><span class="cr-label">Charges de personnel</span></div>
+      <span class="cr-value">486 k€</span>
+    </div>
+    <div class="cr-row">
+      <div class="cr-left"><span class="cr-op" style="color:var(--red)">−</span><span class="cr-label">Dotations aux amortissements</span></div>
+      <span class="cr-value">88 k€</span>
+    </div>
+    <div class="cr-row subtotal">
+      <div class="cr-left"><span class="cr-op" style="color:var(--green-dark)">=</span><span class="cr-label bold">Résultat d'exploitation (REX)</span></div>
+      <span class="cr-value warn">+ 10 k€ <span class="badge">0,3%</span></span>
+    </div>
+    <div class="cr-cat">Financier</div>
+    <div class="cr-row">
+      <div class="cr-left"><span class="cr-op" style="color:var(--red)">−</span><span class="cr-label">Charges financières (intérêts)</span></div>
+      <span class="cr-value warn">32 k€</span>
+    </div>
+    <div class="cr-row result-courant">
+      <div class="cr-left"><span class="cr-op">=</span><span class="cr-label bold">Résultat courant avant impôt</span></div>
+      <span class="cr-value">− 22 k€</span>
+    </div>
+    <div class="cr-cat">Exceptionnel</div>
+    <div class="cr-row">
+      <div class="cr-left"><span class="cr-op" style="color:var(--red)">−</span><span class="cr-label">Résultat exceptionnel</span></div>
+      <span class="cr-value neg">− 20 k€ <span class="badge red">⚠</span></span>
+    </div>
+    <div class="cr-row result-net">
+      <div class="cr-left"><span class="cr-op" style="color:var(--gold)">=</span><span class="cr-label bold">RÉSULTAT NET</span></div>
+      <span class="cr-value">− 42 k€</span>
+    </div>
+  </div>
+
+  <div class="aide-card">
+    <div class="aide-title">💡 Fiche d'aide — Les 3 questions à se poser</div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green)"></div><span>Le <strong>REX</strong> est-il positif ? → L'exploitation est-elle rentable au quotidien ?</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--green-mid)"></div><span>Le <strong>résultat courant</strong> est-il positif ? → La dette est-elle supportable ?</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--gold)"></div><span>Le <strong>résultat exceptionnel</strong> est-il important ? → Événement ponctuel ou récurrent ?</span></div>
+    <div class="aide-row"><div class="aide-dot" style="background:var(--red)"></div><span>Chez Métalux : REX +10k€ − Financier −32k€ − Exceptionnel −20k€ = <strong>−42k€</strong></span></div>
+  </div>
+
+  <button class="btn btn-next" onclick="switchTabByName('ex1')">Commencer l'exercice 1 →</button>
+</div>
+
+<!-- EXERCICE 1 -->
+<div id="pane-ex1" class="pane">
+  <div class="niveau n1">Exercice 1 — Classez les opérations</div>
+  <div class="section-title">12 opérations dans les 3 niveaux du CR</div>
+  <div class="section-sub">Sélectionnez une carte (elle devient verte) puis touchez la colonne.</div>
+
+  <div class="instruction">
+    <span style="font-size:16px;flex-shrink:0">👆</span>
+    <span>Sélectionnez une carte, elle devient verte avec une bordure épaisse. Puis touchez la colonne correspondante. Touchez une carte placée pour la retirer.</span>
+  </div>
+
+  <div class="op-bank" id="op-bank"></div>
+  <div class="cat-cols" id="cat-cols"></div>
+  <div id="ex1-feedback"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetEx1()">↺ Recommencer</button>
+    <button class="btn btn-primary" onclick="checkEx1()">Vérifier</button>
+  </div>
+  <button class="btn btn-next" onclick="switchTabByName('ex2')">Exercice 2 →</button>
+</div>
+
+<!-- EXERCICE 2 -->
+<div id="pane-ex2" class="pane">
+  <div class="niveau n1">Niveau 1 — Identification</div>
+  <div class="section-title">À quel niveau du CR se situe cette opération ?</div>
+  <div class="section-sub">La correction s'affiche dès votre sélection.</div>
+  <div id="qlist-n1"></div>
+
+  <div class="niveau n2" style="margin-top:12px">Niveau 2 — Impact sur le résultat</div>
+  <div class="section-title">Quel résultat est impacté en premier ?</div>
+  <div class="section-sub">La correction s'affiche dès votre sélection.</div>
+  <div id="qlist-n2"></div>
+
+  <div class="niveau n3" style="margin-top:12px">Niveau 3 — Posture consultant</div>
+  <div class="section-title">Luc Darnand vous montre son CR</div>
+  <div class="section-sub">La correction s'affiche dès votre sélection.</div>
+  <div id="qlist-n3"></div>
+
+  <button class="btn btn-next" style="margin-top:12px" onclick="buildSynthese();switchTabByName('synthese')">Voir ma synthèse →</button>
+</div>
+
+<!-- SYNTHÈSE -->
+<div id="pane-synthese" class="pane">
+  <div class="section-title">Votre synthèse</div>
+  <div class="section-sub">Bilan de vos exercices sur le compte de résultat.</div>
+  <div id="synthese-content"></div>
+  <button class="btn btn-next" onclick="window.location.href='../index.html'">Retour à l'accueil →</button>
+</div>
+
+<script>
+const OPS=[
+  {id:0,label:"Ventes de fenêtres alu à Promobuild",cat:'E',fb:"Exploitation — ventes = produits d'exploitation, cœur de l'activité."},
+  {id:1,label:"Achat de profilés aluminium",cat:'E',fb:"Exploitation — achats matières = charges d'exploitation directes."},
+  {id:2,label:"Salaires et charges sociales des 34 salariés",cat:'E',fb:"Exploitation — charges de personnel = charges d'exploitation."},
+  {id:3,label:"Loyer mensuel de l'atelier",cat:'E',fb:"Exploitation — loyer = charge externe d'exploitation récurrente."},
+  {id:4,label:"Dotation aux amortissements machine CNC",cat:'E',fb:"Exploitation — amortissement = charge calculée d'exploitation."},
+  {id:5,label:"Subvention d'exploitation reçue",cat:'E',fb:"Exploitation — subvention d'exploitation = produit d'exploitation."},
+  {id:6,label:"Intérêts payés sur l'emprunt bancaire",cat:'F',fb:"Financier — intérêts d'emprunts = charges financières."},
+  {id:7,label:"Frais de découvert bancaire (agios)",cat:'F',fb:"Financier — agios de découvert = charges financières."},
+  {id:8,label:"Pénalité de retard sur un chantier",cat:'X',fb:"Exceptionnel — pénalité = charge exceptionnelle non récurrente."},
+  {id:9,label:"Cession d'un ancien équipement",cat:'X',fb:"Exceptionnel — céder un actif = produit exceptionnel hors exploitation."},
+  {id:10,label:"Remboursement d'assurance sinistre",cat:'X',fb:"Exceptionnel — remboursement assurance = produit exceptionnel."},
+  {id:11,label:"Refacturation transport à un client",cat:'E',fb:"Exploitation — produit accessoire d'exploitation."}
+];
+
+const CATS=[
+  {id:'E',name:"Exploitation",hint:"Activité normale",cls:'col-exploit'},
+  {id:'F',name:"Financier",hint:"Dettes & intérêts",cls:'col-fin'},
+  {id:'X',name:"Exceptionnel",hint:"Événements inhabituels",cls:'col-excep'}
+];
+
+const CAT_STYLE={
+  'Exploitation':{bg:'#e8ede3',txt:'#4a5a3d',brd:'#a8c090'},
+  'Financier':{bg:'#edf2e8',txt:'#4a6040',brd:'#b0c8a0'},
+  'Exceptionnel':{bg:'#f9eed8',txt:'#8a5a18',brd:'#e8c07a'}
+};
+const CAT_DOCS=['Exploitation','Financier','Exceptionnel'];
+
+const QN1=[
+  {q:"Métalux reçoit une facture d'électricité pour l'atelier. Quel niveau du CR ?",ans:'Exploitation',fb:"Charges externes d'exploitation — l'énergie fait partie du fonctionnement courant."},
+  {q:"Métalux paie 32 000€ d'intérêts à sa banque. Quel niveau ?",ans:'Financier',fb:"Charges financières — les intérêts d'emprunts sont dans le résultat financier."},
+  {q:"Un client réclame une pénalité de 8 000€ pour retard de livraison. Quel niveau ?",ans:'Exceptionnel',fb:"Charge exceptionnelle — une pénalité n'est pas une charge récurrente."},
+  {q:"Métalux facture une prestation de pose à Bouygues. Quel niveau ?",ans:'Exploitation',fb:"Produit d'exploitation — la pose = cœur de l'activité de Métalux."},
+  {q:"Métalux revend un vieux camion de livraison. Quel niveau ?",ans:'Exceptionnel',fb:"Produit exceptionnel — la cession d'un actif n'est pas une opération courante."},
+  {q:"La banque prélève des agios pour le découvert de 82 000€. Quel niveau ?",ans:'Financier',fb:"Charges financières — les agios = coût du financement court terme."}
+];
+
+const QN2=[
+  {q:"Le coût des matières passe de 65,6% à 70% du CA. Quel résultat est impacté en premier ?",ans:'Exploitation',fb:"Le REX se dégrade. Sur 3 200k€ de CA, +4,4 pts = +141k€ de charges. Le REX déjà fragile (+10k€) deviendrait négatif (−131k€)."},
+  {q:"Les charges financières passent de 32k€ à 50k€. Quel résultat est impacté en premier ?",ans:'Financier',fb:"Le résultat financier se dégrade de 18k€. Le résultat courant passe de −22k€ à −40k€. Le résultat net suit."},
+  {q:"Métalux reçoit une indemnité exceptionnelle de 30k€. Quel résultat s'améliore ?",ans:'Exceptionnel',fb:"Le résultat exceptionnel s'améliore de 30k€. Mais c'est non récurrent — l'exploitation reste problématique."}
+];
+
+const QN3=[
+  {q:'"Mon résultat net est négatif mais mon REX est positif. Comment ?"',ans:'Financier',fb:"La dette absorbe tout. REX +10k€ − intérêts 32k€ = résultat courant −22k€. Question à poser : peut-on renégocier l'endettement ?"},
+  {q:'"Mes ventes ont baissé de 13% mais mes charges n\'ont pas baissé autant."',ans:'Exploitation',fb:"Les charges fixes (salaires, loyer, amortissements) ne baissent pas avec le CA. Effet ciseaux — identifier le point mort de Métalux."},
+  {q:'"Le résultat exceptionnel de −20k€ m\'inquiète. C\'est grave ?"',ans:'Exceptionnel',fb:"Ça dépend de l'origine. Pénalité ponctuelle → non récurrent. Provision pour risque → signal plus grave. Première question : qu'est-ce qui compose ce −20k€ ?"}
+];
+
+let selectedOpId=null,ex1Checked=false,ex1Score=0;
+let n2scores={n1:0,n2:0,n3:0};
+const MAX_EX1=12,MAX_EX2=QN1.length+QN2.length+QN3.length;
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');document.getElementById('pane-'+id).classList.add('on');
+  document.getElementById('score-bar').style.display=(id==='memo'||id==='synthese')?'none':'flex';
+  updateScoreBar();
+}
+function switchTabByName(id){
+  const ids=['memo','ex1','ex2','synthese'];
+  document.querySelectorAll('.tab').forEach((t,i)=>{if(ids[i]===id)switchTab(id,t);});
+}
+function updateScoreBar(){
+  const total=ex1Score+Object.values(n2scores).reduce((a,b)=>a+b,0);
+  const max=MAX_EX1+MAX_EX2;
+  document.getElementById('score-num').textContent=total;
+  document.getElementById('score-label').textContent='/ '+max+' points';
+  document.getElementById('score-pct').textContent=max>0?Math.round(total/max*100)+'%':'';
+}
+
+/* EX1 */
+function buildEx1(){
+  const bank=document.getElementById('op-bank');bank.innerHTML='';
+  OPS.forEach(op=>{
+    const d=document.createElement('div');d.className='op-card';d.dataset.id=op.id;d.textContent=op.label;
+    d.onclick=()=>selectOp(op.id,d);bank.appendChild(d);
+  });
+  const cols=document.getElementById('cat-cols');cols.innerHTML='';
+  CATS.forEach(cat=>{
+    const c=document.createElement('div');c.className='cat-col '+cat.cls;c.id='col-'+cat.id;
+    c.innerHTML=`<div class="col-header"><div class="col-header-name">${cat.name}</div><div class="col-header-hint">${cat.hint}</div></div><div class="col-drop" id="drop-${cat.id}"></div>`;
+    c.onclick=()=>dropInto(cat.id);cols.appendChild(c);
+  });
+}
+function selectOp(id,card){
+  if(card.classList.contains('placed'))return;
+  if(selectedOpId===id){selectedOpId=null;document.querySelectorAll('.op-card').forEach(c=>c.classList.remove('selected'));return;}
+  document.querySelectorAll('.op-card').forEach(c=>c.classList.remove('selected'));
+  selectedOpId=id;card.classList.add('selected');
+  document.querySelectorAll('.col-drop').forEach(d=>d.classList.add('highlight'));
+}
+function dropInto(colId){
+  if(selectedOpId===null)return;
+  const op=OPS.find(o=>o.id===selectedOpId);
+  const card=document.querySelector('.op-card[data-id="'+selectedOpId+'"]');
+  card.classList.add('placed');card.classList.remove('selected');
+  selectedOpId=null;
+  document.querySelectorAll('.col-drop').forEach(d=>d.classList.remove('highlight'));
+  const tag=document.createElement('div');tag.className='placed-tag pending';
+  tag.dataset.id=op.id;tag.dataset.col=colId;tag.textContent=op.label;
+  tag.onclick=()=>unplace(op.id,colId,tag);
+  document.getElementById('drop-'+colId).appendChild(tag);
+  updateScoreBar();
+}
+function unplace(id,colId,el){
+  if(ex1Checked)return;el.remove();
+  document.querySelector('.op-card[data-id="'+id+'"]').classList.remove('placed');
+  updateScoreBar();
+}
+function checkEx1(){
+  ex1Checked=true;let ok=0;const hints=[];
+  document.querySelectorAll('.placed-tag').forEach(tag=>{
+    const op=OPS.find(o=>o.id==tag.dataset.id);
+    if(tag.dataset.col===op.cat){tag.className='placed-tag correct';ok++;}
+    else{tag.className='placed-tag wrong';hints.push(op.fb);}
+    tag.onclick=null;
+  });
+  ex1Score=ok;updateScoreBar();
+  const fb=document.getElementById('ex1-feedback');
+  if(hints.length===0&&ok===12){fb.innerHTML='<div class="feedback-box ok">✓ Parfait ! Les 12 opérations sont correctement classées.</div>';}
+  else{
+    let html=`<div class="feedback-box ko"><strong>${hints.length} erreur(s) — corrections :</strong><br><br>`;
+    hints.forEach(h=>html+=`• ${h}<br>`);html+='</div>';fb.innerHTML=html;
+  }
+}
+function resetEx1(){
+  ex1Checked=false;selectedOpId=null;ex1Score=0;
+  document.getElementById('ex1-feedback').innerHTML='';buildEx1();updateScoreBar();
+}
+
+/* QCM — auto-correction immédiate */
+function buildQlist(qs,containerId,prefix){
+  const c=document.getElementById(containerId);c.innerHTML='';
+  qs.forEach((q,i)=>{
+    const card=document.createElement('div');card.className='q-card';
+    let btns='';
+    CAT_DOCS.forEach(d=>{
+      const s=CAT_STYLE[d];
+      btns+=`<button class="doc-btn" data-doc="${d}" style="background:${s.bg};color:${s.txt};border-color:${s.brd}" onclick="handleBtn(this,'${prefix}',${i})">${d}</button>`;
+    });
+    card.innerHTML=`<div class="q-header"><div class="q-num">${i+1}</div><div class="q-text">${q.q}</div></div><div class="q-choices" id="${prefix}-c-${i}">${btns}</div><div class="q-feedback" id="${prefix}-f-${i}"></div>`;
+    c.appendChild(card);
+  });
+}
+
+function handleBtn(btn,prefix,idx){
+  if(btn.classList.contains('correct')||btn.classList.contains('wrong')||btn.classList.contains('dimmed'))return;
+  const choices=btn.parentElement.querySelectorAll('.doc-btn');
+  choices.forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  autoCorrect(prefix,idx);
+}
+
+function autoCorrect(prefix,idx){
+  let q;
+  if(prefix==='qn1')q=QN1[idx];
+  else if(prefix==='qn2')q=QN2[idx];
+  else q=QN3[idx];
+  const fb=document.getElementById(prefix+'-f-'+idx);
+  const expected=Array.isArray(q.ans)?q.ans:[q.ans];
+  const choices=document.querySelectorAll(`#${prefix}-c-${idx} .doc-btn`);
+  let hasWrong=false;
+  choices.forEach(btn=>{
+    const isOk=expected.includes(btn.dataset.doc);
+    const sel=btn.classList.contains('selected');
+    if(isOk){btn.classList.remove('selected');btn.classList.add('correct');}
+    else if(sel){btn.classList.remove('selected');btn.classList.add('wrong');hasWrong=true;}
+    else{btn.classList.add('dimmed');}
+  });
+  fb.className=hasWrong?'q-feedback show ko':'q-feedback show ok';
+  fb.innerHTML=(hasWrong?'✗ ':'✓ ')+q.fb;
+  updateN2Scores();
+}
+
+function updateN2Scores(){
+  n2scores.n1=document.querySelectorAll('#qlist-n1 .q-feedback.show.ok').length;
+  n2scores.n2=document.querySelectorAll('#qlist-n2 .q-feedback.show.ok').length;
+  n2scores.n3=document.querySelectorAll('#qlist-n3 .q-feedback.show.ok').length;
+  updateScoreBar();
+}
+
+/* SYNTHÈSE */
+function buildSynthese(){
+  const total=ex1Score+Object.values(n2scores).reduce((a,b)=>a+b,0);
+  const max=MAX_EX1+MAX_EX2;
+  const pct=Math.round(total/max*100);
+  const scoreColor=pct>=80?'#27500A':pct>=60?'#854F0B':'#791F1F';
+  const scoreBg=pct>=80?'#EAF3DE':pct>=60?'#f9eed8':'#FCEBEB';
+  const maitrise=[];const renforcer=[];
+
+  if(ex1Score>=10)maitrise.push('Classer les opérations dans les 3 niveaux du CR');
+  else renforcer.push('Classement — revoir Exploitation vs Financier vs Exceptionnel');
+  if(n2scores.n1>=5)maitrise.push('Identifier le niveau d\'une opération courante');
+  else renforcer.push('Identification des niveaux — revoir les exemples du mémo');
+  if(n2scores.n2>=2)maitrise.push('Analyser l\'impact d\'une variation sur le résultat');
+  else renforcer.push('Impact sur le résultat — revoir la cascade du CR Métalux');
+  if(n2scores.n3>=2)maitrise.push('Posture consultant — diagnostiquer à partir du CR');
+  else renforcer.push('Posture consultant — pratiquer avec les cas Métalux');
+
+  let html=`<div class="synthese-card">
+    <div class="synthese-header" style="background:${scoreBg}">
+      <div class="synthese-score-big" style="color:${scoreColor}">${pct}%</div>
+      <div><strong style="color:${scoreColor};font-size:15px">${total} / ${max} points</strong><br><span style="font-size:13px;color:${scoreColor}">${pct>=80?'Excellent !':pct>=60?'Bon niveau':'À renforcer'}</span></div>
+    </div>
+    <div class="synthese-body">`;
+  if(maitrise.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#27500A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">✓ Maîtrisé</div>`;
+    maitrise.forEach(m=>html+=`<div class="synthese-row s-ok">✅ <span>${m}</span></div>`);
+  }
+  if(renforcer.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#854F0B;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 2px">→ À renforcer</div>`;
+    renforcer.forEach(r=>html+=`<div class="synthese-row s-ko">📌 <span>${r}</span></div>`);
+  }
+  html+=`</div></div>`;
+  document.getElementById('synthese-content').innerHTML=html;
+  saveScoreLS('ex03',total,max);
+}
+
+function saveScoreLS(key,score,max){
+  try{localStorage.setItem('metalux_'+key,JSON.stringify({score,max,date:new Date().toLocaleDateString('fr-FR'),pct:Math.round(score/max*100)}));}catch(e){}
+}
+
+buildEx1();
+buildQlist(QN1,'qlist-n1','qn1');
+buildQlist(QN2,'qlist-n2','qn2');
+buildQlist(QN3,'qlist-n3','qn3');
+</script>
+</body>
+</html>

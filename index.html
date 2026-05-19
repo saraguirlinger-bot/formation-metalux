@@ -76,6 +76,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- IDENTIFICATION -->
+<div id="id-block" style="background:#fff;border-bottom:1px solid #e2e0d8;padding:16px 20px;">
+  <div id="id-form">
+    <div style="font-size:13px;font-weight:700;color:#1a1a18;margin-bottom:12px;">👤 Votre identification</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:4px;">Nom</div>
+        <input id="id-nom" type="text" placeholder="Votre nom" style="width:100%;border:1.5px solid #e2e0d8;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;color:#1a1a18;">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:4px;">Prénom</div>
+        <input id="id-prenom" type="text" placeholder="Votre prénom" style="width:100%;border:1.5px solid #e2e0d8;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;color:#1a1a18;">
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:4px;">Groupe / Formation</div>
+      <input id="id-groupe" type="text" placeholder="Ex : Métalux — Session mai 2026" style="width:100%;border:1.5px solid #e2e0d8;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;color:#1a1a18;">
+    </div>
+    <button onclick="saveIdentification()" style="width:100%;background:#6B7C5C;color:#fff;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Commencer la formation →</button>
+    <div id="id-error" style="font-size:12px;color:#A32D2D;margin-top:8px;display:none;">Veuillez renseigner votre nom et prénom.</div>
+  </div>
+  <div id="id-display" style="display:none;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#1a1a18;" id="id-name-display"></div>
+      <div style="font-size:12px;color:#888780;" id="id-groupe-display"></div>
+    </div>
+    <button onclick="resetIdentification()" style="background:transparent;border:1px solid #e2e0d8;border-radius:6px;padding:6px 12px;font-size:11px;color:#888780;cursor:pointer;">Modifier</button>
+  </div>
+</div>
+
 <div class="progress-section">
   <div class="progress-header">
     <span class="progress-label">Progression</span>
@@ -247,5 +277,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div class="footer">Métalux Fabrications — Cas pédagogique fictif · Formation lecture des documents comptables</div>
 
-</body>
+<script>
+// ── Identification ──
+function saveIdentification() {
+  const nom = document.getElementById('id-nom').value.trim();
+  const prenom = document.getElementById('id-prenom').value.trim();
+  const groupe = document.getElementById('id-groupe').value.trim();
+  if (!nom || !prenom) {
+    document.getElementById('id-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('id-error').style.display = 'none';
+  localStorage.setItem('metalux_profil', JSON.stringify({ nom, prenom, groupe }));
+  afficherProfil(nom, prenom, groupe);
+}
+
+function afficherProfil(nom, prenom, groupe) {
+  document.getElementById('id-form').style.display = 'none';
+  document.getElementById('id-display').style.display = 'flex';
+  document.getElementById('id-name-display').textContent = prenom + ' ' + nom;
+  document.getElementById('id-groupe-display').textContent = groupe || 'Formation Métalux';
+}
+
+function resetIdentification() {
+  localStorage.removeItem('metalux_profil');
+  document.getElementById('id-form').style.display = 'block';
+  document.getElementById('id-display').style.display = 'none';
+}
+
+// Charger profil existant au démarrage
+window.addEventListener('load', () => {
+  try {
+    const p = JSON.parse(localStorage.getItem('metalux_profil'));
+    if (p && p.nom) {
+      document.getElementById('id-nom').value = p.nom;
+      document.getElementById('id-prenom').value = p.prenom;
+      document.getElementById('id-groupe').value = p.groupe || '';
+      afficherProfil(p.nom, p.prenom, p.groupe);
+    }
+  } catch(e) {}
+});
+</script>
 </html>

@@ -510,6 +510,30 @@ function buildSynthese(){
   saveScoreLS('ex01',total,max);
 }
 
+
+/* ── ENVOI RÉSULTATS MÉTALUX ── */
+function envoyerResultatsMetalux(score, scoreMax) {
+  try {
+    const profil = JSON.parse(localStorage.getItem('metalux_profil') || '{}');
+    fetch('https://www.horizonpme.fr/save-metalux.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        nom:      profil.nom || '—',
+        prenom:   profil.prenom || '—',
+        classe:   profil.groupe || '—',
+        exercice: '01 — Plan comptable',
+        score:    score,
+        scoreMax: scoreMax,
+        pct:      Math.round(score / scoreMax * 100)
+      })
+    })
+    .then(r => r.json())
+    .then(d => { if(d.success) console.log('✅ Résultat envoyé — 01 — Plan comptable'); })
+    .catch(e => console.warn('⚠️ Envoi impossible :', e));
+  } catch(e) {}
+}
+
 /* localStorage */
 function saveScoreLS(key,score,max){
   try{
@@ -518,6 +542,7 @@ function saveScoreLS(key,score,max){
       pct:Math.round(score/max*100)
     }));
   }catch(e){}
+  envoyerResultatsMetalux(score, max);
 }
 
 buildEx1();

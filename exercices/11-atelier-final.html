@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#6B7C5C">
+<title>Métalux — Audit N+1</title>
+<style>
+:root{
+  --green:#6B7C5C;--green-light:#e8ede3;--green-mid:#8A9E78;--green-dark:#4a5a3d;
+  --gold:#C17F24;--gold-light:#f9eed8;--gold-dark:#8a5a18;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --border:#e2e0d8;--bg:#ffffff;--bg2:#f8f7f4;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:40px}
+.app-header{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:2px}
+.app-header p{font-size:12px;color:rgba(255,255,255,.65)}
+.tab-bar{display:flex;gap:0;padding:0;border-top:1px solid rgba(255,255,255,.15);overflow-x:auto;scrollbar-width:none;margin-top:10px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+.score-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:13px}
+.score-num{font-size:20px;font-weight:700;color:var(--green)}
+.score-label{color:var(--text2);flex:1}
+.score-pct{font-size:12px;font-weight:600;color:var(--text3)}
+.pane{display:none;padding:16px 16px 0}
+.pane.on{display:block}
+.section-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+.etape-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;margin-bottom:12px;background:var(--green);color:#fff}
+.context-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:12px}
+.context-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
+.context-line{font-size:13px;color:var(--text2);padding:5px 0;border-bottom:.5px solid var(--border);line-height:1.5;display:flex;align-items:flex-start;gap:8px}
+.context-line:last-child{border-bottom:none}
+.context-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.docs-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.doc-ref{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.doc-ref-header{padding:10px 14px;font-size:13px;font-weight:700;color:#fff}
+.doc-ref-body{padding:8px 14px;display:flex;flex-direction:column;gap:2px}
+.doc-ref-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid var(--border)}
+.doc-ref-row:last-child{border-bottom:none}
+.doc-ref-label{color:var(--text2)}
+.doc-ref-val{font-weight:600}
+.pos{color:#3B6D11}.warn{color:#854F0B}.neg{color:var(--red)}
+.compare-table{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px;font-size:12px}
+.compare-table th{padding:8px 12px;background:var(--bg3);font-size:11px;font-weight:700;color:var(--text3);text-align:left;text-transform:uppercase;letter-spacing:.04em}
+.compare-table th:not(:first-child){text-align:right}
+.compare-table td{padding:7px 12px;border-top:.5px solid var(--border);color:var(--text2)}
+.compare-table td:not(:first-child){text-align:right;font-weight:600}
+.compare-table tr.sub td{color:var(--text3);font-size:11px;padding-left:20px}
+.delta-pos{color:#3B6D11}.delta-warn{color:#854F0B}.delta-neg{color:var(--red)}
+.q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.q-header{padding:13px 14px;display:flex;align-items:flex-start;gap:10px}
+.q-num{width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.q-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.q-choices{display:flex;flex-direction:column;gap:8px;padding:0 14px 13px}
+.q-btn{padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:2px solid var(--border);background:var(--bg);color:var(--text);text-align:left;transition:all .15s;line-height:1.3}
+.q-btn:active{transform:scale(.98)}
+.q-btn.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none;border-width:3px}
+.q-btn.wrong{border-color:var(--red);background:var(--red-light);color:#791F1F;pointer-events:none;border-width:2px;opacity:.7}
+.q-btn.dimmed{opacity:.25;pointer-events:none}
+.q-feedback{padding:8px 14px 12px;font-size:12px;line-height:1.5;display:none;border-radius:0 0 8px 8px}
+.q-feedback.show.ok{display:block;background:#EAF3DE;color:#27500A}
+.q-feedback.show.ko{display:block;background:var(--red-light);color:#791F1F}
+.calc-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px}
+.calc-label{font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.4}
+.calc-formula{font-size:12px;font-style:italic;color:var(--green-dark);background:var(--green-light);border-radius:6px;padding:6px 10px;margin-bottom:8px;line-height:1.5}
+.calc-row{display:flex;align-items:center;gap:8px}
+.input-field{width:110px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;text-align:right;background:var(--bg2);color:var(--text);-moz-appearance:textfield}
+.input-field::-webkit-inner-spin-button{-webkit-appearance:none}
+.input-field:focus{outline:none;border-color:var(--green);background:var(--green-light)}
+.input-field.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A;pointer-events:none}
+.input-field.wrong{border-color:var(--red);background:var(--red-light);color:#791F1F}
+.input-unit{font-size:12px;color:var(--text3)}
+.calc-feedback{font-size:12px;line-height:1.5;padding:6px 10px;border-radius:6px;margin-top:8px;display:none}
+.calc-feedback.ok{display:block;background:#EAF3DE;color:#27500A}
+.calc-feedback.ko{display:block;background:var(--red-light);color:#791F1F}
+.calc-check{padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:#fff;width:100%;margin-top:8px}
+.matrice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.risque-card{border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border)}
+.risque-header{padding:9px 12px;font-size:12px;font-weight:700;color:#fff;display:flex;justify-content:space-between;align-items:center}
+.risque-body{background:var(--bg);padding:8px 12px;font-size:12px;color:var(--text2);line-height:1.5}
+.risque-delta{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.25)}
+.notion-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.notion-header{padding:10px 14px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.notion-body{padding:10px 14px;font-size:13px;color:var(--text2);line-height:1.6}
+.notion-body strong{color:var(--text)}
+.notion-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--border);font-size:12px}
+.notion-row:last-child{border-bottom:none}
+.financement-table{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px;font-size:12px}
+.financement-table th{padding:8px 10px;background:var(--bg3);font-size:11px;font-weight:700;color:var(--text3);text-align:left}
+.financement-table td{padding:7px 10px;border-top:.5px solid var(--border);color:var(--text2);vertical-align:top;line-height:1.4}
+.financement-table td:first-child{font-weight:600;color:var(--text);white-space:nowrap}
+.tag-pos{background:#EAF3DE;color:#27500A;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px}
+.tag-neg{background:var(--red-light);color:#791F1F;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px}
+.tag-warn{background:var(--gold-light);color:var(--gold-dark);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px}
+.synthese-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.synthese-header{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.synthese-score-big{font-size:30px;font-weight:800}
+.synthese-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.synthese-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.4}
+.s-ok{background:#EAF3DE}.s-ko{background:var(--gold-light)}
+.profil-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:12px}
+.profil-header{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.profil-score-big{font-size:36px;font-weight:800;margin-bottom:4px}
+.progress-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;border-radius:4px;transition:width .6s}
+.theme-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--border);font-size:13px}
+.theme-row:last-child{border-bottom:none}
+.theme-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px}
+.t-ok{background:#EAF3DE;color:#27500A}.t-warn{background:var(--gold-light);color:var(--gold-dark)}.t-ko{background:var(--red-light);color:var(--red)}
+.axe-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--gold-light);border-radius:8px;margin-bottom:6px;font-size:13px}
+.note-block{background:var(--green-light);border:1px solid #a8c090;border-radius:var(--radius-lg);padding:14px;margin-bottom:12px}
+.note-title{font-size:13px;font-weight:700;color:var(--green-dark);margin-bottom:8px}
+.note-point{font-size:13px;color:var(--text2);padding:5px 0;border-bottom:.5px solid #a8c090;line-height:1.5}
+.note-point:last-child{border-bottom:none}
+.btn{padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid;min-height:46px;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-next{background:var(--green);color:#fff;border-color:var(--green);width:100%;margin-bottom:16px;padding:13px}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>Metalux — Audit N+1</h1>
+  <p>Metalux 1 an plus tard · Mini audit complet · ~50 min</p>
+  <div class="tab-bar">
+    <button class="tab on" onclick="switchTab('docs',this)">Dossier</button>
+    <button class="tab" onclick="switchTab('etape1',this)">Etape 1</button>
+    <button class="tab" onclick="switchTab('etape2',this)">Etape 2</button>
+    <button class="tab" onclick="switchTab('etape3',this)">Etape 3</button>
+    <button class="tab" onclick="switchTab('etape4',this)">Etape 4</button>
+    <button class="tab" onclick="switchTab('etape5',this)">Etape 5</button>
+    <button class="tab" onclick="switchTab('etape6',this)">Etape 6</button>
+    <button class="tab" onclick="switchTab('synthese',this)">Synthese</button>
+  </div>
+</div>
+<div class="score-bar" id="score-bar" style="display:none">
+  <span class="score-num" id="score-num">0</span>
+  <span class="score-label" id="score-label">/ 0 points</span>
+  <span class="score-pct" id="score-pct"></span>
+</div>
+
+<!-- DOSSIER -->
+<div id="pane-docs" class="pane on">
+  <div class="etape-badge">Dossier Metalux — 12 mois plus tard</div>
+  <div class="section-title">Metalux N+1 — Ce qui a change</div>
+  <div class="section-sub">Luc Darnand a agi. Lisez le contexte, etudiez les documents, puis lancez l'audit.</div>
+
+  <div class="context-card">
+    <div class="context-title">Ce que Luc a fait cette annee</div>
+    <div class="context-line"><div class="context-dot" style="background:var(--green)"></div><span><strong>Repercussion des prix :</strong> La hausse des matieres a ete partiellement repercutee sur les prix de vente. La marge se redresse, sans retrouver encore les niveaux sectoriels.</span></div>
+    <div class="context-line"><div class="context-dot" style="background:var(--green)"></div><span><strong>Relance clients :</strong> Un process de relance systematique a permis de recuperer une partie des creances en souffrance. De nouveaux clients ont ete signes, reduisant la dependance a Promobuild.</span></div>
+    <div class="context-line"><div class="context-dot" style="background:var(--gold)"></div><span><strong>Saturation de la production :</strong> Pour augmenter le CA, Luc a choisi de pousser les machines au maximum. Cela tire le volume vers le haut mais cree une pression nouvelle sur la masse salariale.</span></div>
+    <div class="context-line"><div class="context-dot" style="background:var(--red)"></div><span><strong>Investissement en suspens :</strong> Une nouvelle machine CNC (Centre a Commande Numerique) a 280 k€ est envisagee. Le ratio de solvabilite ne permet pas encore de financer sereinement. La question du mode de financement est ouverte.</span></div>
+  </div>
+
+  <div class="section-title" style="margin-top:4px">Compte de resultat compare (k€)</div>
+  <table class="compare-table">
+    <thead><tr><th>Poste</th><th>N</th><th>N+1</th><th>Evolution</th></tr></thead>
+    <tbody>
+      <tr><td>Chiffre d'affaires</td><td>3 200</td><td class="delta-pos">3 680</td><td class="delta-pos">+15%</td></tr>
+      <tr class="sub"><td>dont nouveaux clients</td><td>—</td><td>+420</td><td>—</td></tr>
+      <tr><td>— Matieres premieres</td><td>2 098</td><td class="warn">2 390</td><td class="warn">+14%</td></tr>
+      <tr><td><strong>= Marge brute</strong></td><td class="warn">1 102</td><td class="delta-pos"><strong>1 290</strong></td><td class="delta-pos">+17%</td></tr>
+      <tr class="sub"><td>Taux de marge brute</td><td class="warn">34,4%</td><td class="warn">?</td><td>a calculer</td></tr>
+      <tr><td>— Charges externes</td><td>480</td><td>492</td><td>+3%</td></tr>
+      <tr><td>— Charges de personnel</td><td>486</td><td class="neg">582</td><td class="neg">+20%</td></tr>
+      <tr class="sub"><td>dont heures supplementaires</td><td>—</td><td class="neg">+96</td><td>—</td></tr>
+      <tr><td><strong>= EBE</strong></td><td class="warn">98</td><td><strong>216</strong></td><td class="delta-pos">+121%</td></tr>
+      <tr class="sub"><td>Taux d'EBE</td><td class="warn">3,1%</td><td class="warn">?</td><td>a calculer</td></tr>
+      <tr><td>— Amortissements</td><td>88</td><td>88</td><td>=</td></tr>
+      <tr><td>= REX</td><td class="warn">+10</td><td class="delta-pos">+128</td><td>—</td></tr>
+      <tr><td>— Charges financieres</td><td>32</td><td>28</td><td>—13%</td></tr>
+      <tr><td>= Resultat net</td><td class="neg">-42</td><td class="delta-pos">+82</td><td class="delta-pos">Retour benefice</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Bilan N+1 (k€)</div>
+  <div class="docs-grid">
+    <div class="doc-ref">
+      <div class="doc-ref-header" style="background:var(--green)">Actif</div>
+      <div class="doc-ref-body">
+        <div class="doc-ref-row"><span class="doc-ref-label">Immobilisations</span><span class="doc-ref-val">635</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label">Stocks</span><span class="doc-ref-val warn">390</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label">Creances clients</span><span class="doc-ref-val warn">345</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label">Tresorerie</span><span class="doc-ref-val pos">94</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label"><strong>Total actif</strong></span><span class="doc-ref-val pos"><strong>1 464</strong></span></div>
+      </div>
+    </div>
+    <div class="doc-ref">
+      <div class="doc-ref-header" style="background:var(--gold)">Passif</div>
+      <div class="doc-ref-body">
+        <div class="doc-ref-row"><span class="doc-ref-label">Capitaux propres</span><span class="doc-ref-val warn">338</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label">Emprunts MLT</span><span class="doc-ref-val warn">520</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label">Decouverte bancaire</span><span class="doc-ref-val pos">0</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label">Dettes fournisseurs</span><span class="doc-ref-val">296</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label">Dettes sociales</span><span class="doc-ref-val warn">310</span></div>
+        <div class="doc-ref-row"><span class="doc-ref-label"><strong>Total passif</strong></span><span class="doc-ref-val pos"><strong>1 464</strong></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.8">
+    <strong style="color:var(--text);display:block;margin-bottom:4px">Donnees complementaires N+1</strong>
+    Promobuild : 24% du CA &nbsp;·&nbsp; Delai clients moyen : 55j &nbsp;·&nbsp; Delai fournisseurs : 55j<br>
+    Masse salariale mensuelle : ~48,5 k€ &nbsp;·&nbsp; Heures supplementaires : 1 300 h/an &nbsp;·&nbsp; Taux horaire moyen : 28 €/h<br>
+    Machines utilisees a 97% de capacite &nbsp;·&nbsp; Investissement envisage : CNC (Centre a Commande Numerique) 280 k€ &nbsp;·&nbsp; Gain estime : 110 k€/an &nbsp;·&nbsp; Duree de vie : 7 ans &nbsp;·&nbsp; Cout du capital : 6%
+  </div>
+  <button class="btn btn-next" onclick="switchTabByName('etape1')">Commencer l'audit →</button>
+</div>
+
+<!-- ETAPE 1 -->
+<div id="pane-etape1" class="pane">
+  <div class="etape-badge">Etape 1 / 5 — Lire les signaux</div>
+  <div class="section-title">Comprendre ce qui a change — et ce qui inquiete encore</div>
+  <div class="section-sub">Chaque question a une seule bonne reponse. La correction s'affiche apres votre choix.</div>
+  <div id="qlist-e1"></div>
+  <button class="btn btn-next" onclick="switchTabByName('etape2')">Etape 2 →</button>
+</div>
+
+<!-- ETAPE 2 -->
+<div id="pane-etape2" class="pane">
+  <div class="etape-badge">Etape 2 / 5 — Calculer et analyser</div>
+  <div class="section-title">Ratios N+1 et implications de la masse salariale</div>
+  <div class="section-sub">Utilisez les formules indiquees et les donnees du dossier. Tolerance +/- 1.</div>
+  <div id="calc-blocks"></div>
+  <button class="btn btn-next" onclick="switchTabByName('etape3')">Etape 3 →</button>
+</div>
+
+<!-- ETAPE 3 -->
+<div id="pane-etape3" class="pane">
+  <div class="etape-badge">Etape 3 / 5 — Matrice de risques N+1</div>
+  <div class="section-title">La situation a evolue — les risques aussi</div>
+  <div class="section-sub">Comparez avec l'annee N. Certains risques ont recule, d'autres sont apparus.</div>
+  <div class="matrice-grid">
+    <div class="risque-card">
+      <div class="risque-header" style="background:#854F0B"><span>Exploitation</span><span class="risque-delta">N : critique</span></div>
+      <div class="risque-body">Marge brute en hausse mais sous la norme. EBE ameliore mais insuffisant. Machines a saturation.</div>
+    </div>
+    <div class="risque-card">
+      <div class="risque-header" style="background:#A32D2D"><span>Masse salariale</span><span class="risque-delta">N : absent</span></div>
+      <div class="risque-body">+20% en un an. Heures supplementaires structurelles. Rigidite nouvelle si le volume baisse.</div>
+    </div>
+    <div class="risque-card">
+      <div class="risque-header" style="background:#6B7C5C"><span>Liquidite</span><span class="risque-delta">N : critique</span></div>
+      <div class="risque-body">Tresorerie positive. Decouverte resorbee. BFR en amelioration. Couverture encore limitee.</div>
+    </div>
+    <div class="risque-card">
+      <div class="risque-header" style="background:#854F0B"><span>Solvabilite</span><span class="risque-delta">N : faible</span></div>
+      <div class="risque-body">CP en hausse grace au benefice integre. Emprunts MLT encore importants. Norme 30% non atteinte.</div>
+    </div>
+  </div>
+  <div id="qlist-e3"></div>
+  <button class="btn btn-next" onclick="switchTabByName('etape4')">Etape 4 →</button>
+</div>
+
+<!-- ETAPE 4 -->
+<div id="pane-etape4" class="pane">
+  <div class="etape-badge">Etape 4 / 6 — Comprendre les methodes</div>
+  <div class="section-title">Les outils d'evaluation d'un investissement</div>
+  <div class="section-sub">Lisez les fiches et le tableau comparatif — pas de questions ici. Ces notions sont les outils de l'etape suivante.</div>
+
+  <!-- FICHE NOTIONS -->
+  <div class="notion-card">
+    <div class="notion-header" style="background:var(--green-light);color:var(--green-dark)">
+      <span>Notion 1 — Le delai de recuperation (Pay-back)</span>
+    </div>
+    <div class="notion-body">
+      <strong>Definition :</strong> temps necessaire pour que les gains cumules remboursent l'investissement initial.<br>
+      <strong>Formule :</strong> Investissement / Gain annuel<br>
+      <strong>Avantage :</strong> simple, lisible, parle aux non-financiers.<br>
+      <strong>Limite :</strong> ignore ce qui se passe apres le seuil de recuperation et ne tient pas compte de la valeur de l'argent dans le temps. Une machine rentable sur 3 ans ou sur 10 ans donne le meme signal si le gain annuel est identique.
+    </div>
+  </div>
+
+  <div class="notion-card">
+    <div class="notion-header" style="background:var(--gold-light);color:var(--gold-dark)">
+      <span>Notion 2 — La Valeur Actuelle Nette (VAN)</span>
+    </div>
+    <div class="notion-body">
+      <strong>Definition :</strong> somme de tous les flux futurs de l'investissement, ramenee a leur valeur d'aujourd'hui en appliquant un taux d'actualisation (le cout du capital).<br>
+      <strong>Logique :</strong> 100 € dans 5 ans valent moins que 100 € aujourd'hui car on pourrait les placer. La VAN corrige cette distorsion.<br>
+      <strong>Interpretation :</strong> VAN > 0 → l'investissement cree de la valeur au-dela du cout du financement. VAN = 0 → seuil de rentabilite. VAN &lt; 0 → l'investissement detruit de la valeur.<br>
+      <strong>Limite :</strong> sensible au taux choisi — un taux trop bas surestime la valeur, trop haut la sous-estime. Necessite de connaitre les flux futurs avec precision.
+    </div>
+  </div>
+
+  <div class="notion-card">
+    <div class="notion-header" style="background:var(--red-light);color:var(--red)">
+      <span>Notion 3 — Le Taux de Rentabilite Interne (TRI)</span>
+    </div>
+    <div class="notion-body">
+      <strong>Definition :</strong> taux d'actualisation qui rend la VAN egale a zero. C'est le rendement propre de l'investissement.<br>
+      <strong>Regle de decision :</strong> si TRI > cout du capital → on investit. Si TRI &lt; cout du capital → on renonce.<br>
+      <strong>Avantage :</strong> exprime en %, facile a comparer a un taux bancaire ou a d'autres projets.<br>
+      <strong>Limite :</strong> peut etre multiple sur des projets complexes. Favorise les projets courts et intensifs au detriment des projets longs et solides.
+    </div>
+  </div>
+
+  <div class="notion-card">
+    <div class="notion-header" style="background:var(--bg3);color:var(--text)">
+      <span>Notion 4 — Le Credit-bail (Leasing)</span>
+    </div>
+    <div class="notion-body">
+      <strong>Definition :</strong> contrat par lequel une societe financiere achete le bien et le loue a l'entreprise, qui verse des loyers periodiques et dispose d'une option d'achat en fin de contrat.<br>
+      <strong>Avantage comptable :</strong> le bien n'apparait pas au bilan comme un actif (selon les normes francaises). L'emprunt correspondant non plus → la solvabilite n'est pas degradee.<br>
+      <strong>Avantage fiscal :</strong> les loyers sont deductibles du resultat (charges d'exploitation).<br>
+      <strong>Inconvenient :</strong> cout total generalement superieur a un emprunt classique. Pas de propriete du bien pendant le contrat. Inflexibilite si l'activite change.
+    </div>
+  </div>
+
+  <!-- TABLEAU COMPARATIF FINANCEMENT -->
+  <div class="section-title" style="margin-top:4px">Comparatif des modes de financement — CNC 280 k€</div>
+  <table class="financement-table">
+    <thead><tr><th>Critere</th><th>Emprunt bancaire</th><th>Credit-bail (leasing)</th><th>Apport capital partiel</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Impact bilan</td>
+        <td>Actif +280 / Dette +280<br><span class="tag-neg">Solvabilite degradee</span></td>
+        <td>Hors bilan (normes FR)<br><span class="tag-pos">Solvabilite preservee</span></td>
+        <td>CP +X / Dette reduite<br><span class="tag-pos">Solvabilite renforcee</span></td>
+      </tr>
+      <tr>
+        <td>Impact CR</td>
+        <td>Amortissements + interets</td>
+        <td>Loyers (charges ext.)<br><span class="tag-pos">Deductibles fiscalement</span></td>
+        <td>Amortissements + interets reduits</td>
+      </tr>
+      <tr>
+        <td>Tresorerie</td>
+        <td>Remboursements fixes<br><span class="tag-warn">Rigidite mensuelle</span></td>
+        <td>Loyers fixes<br><span class="tag-warn">Rigidite similaire</span></td>
+        <td>Allegement mensuel<br><span class="tag-pos">Plus de souplesse</span></td>
+      </tr>
+      <tr>
+        <td>Propriete du bien</td>
+        <td><span class="tag-pos">Immediate</span></td>
+        <td><span class="tag-warn">Option en fin de contrat</span></td>
+        <td><span class="tag-pos">Immediate</span></td>
+      </tr>
+      <tr>
+        <td>Cout total</td>
+        <td>Interets sur 7 ans</td>
+        <td><span class="tag-neg">Plus eleve que emprunt</span></td>
+        <td>Interets reduits</td>
+      </tr>
+      <tr>
+        <td>Adapte a Metalux ?</td>
+        <td><span class="tag-neg">Risque — solvabilite 23%</span></td>
+        <td><span class="tag-pos">Oui si loyers absorbables</span></td>
+        <td><span class="tag-pos">Ideal mais exige associes</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-sub" style="margin-top:4px">Donnees pour evaluer : Pay-back = 280 / 110 · VAN calculee a 6% sur 7 ans ≈ +183 k€ · TRI ≈ 28%</div>
+  <button class="btn btn-next" onclick="switchTabByName('etape5')" style="margin-top:8px">Etape 5 — Decider →</button>
+</div>
+
+<!-- ETAPE 5 -->
+<div id="pane-etape5" class="pane">
+  <div class="etape-badge">Etape 5 / 6 — Decider de l'investissement</div>
+  <div class="section-title">CNC (Centre a Commande Numerique) a 280 k€ — comment decider ?</div>
+  <div class="section-sub">Appuyez-vous sur les fiches de l'etape 4 pour repondre. La correction s'affiche apres votre choix.</div>
+  <div id="qlist-e4"></div>
+  <button class="btn btn-next" onclick="switchTabByName('etape6')">Etape 6 →</button>
+</div>
+
+<!-- ETAPE 6 -->
+<div id="pane-etape6" class="pane">
+  <div class="etape-badge">Etape 6 / 6 — Recommandations</div>
+  <div class="section-title">Que conseillez-vous a Luc pour la suite ?</div>
+  <div class="section-sub">Posture consultant : priorisez, argumentez, restez factuel.</div>
+  <div id="qlist-e5"></div>
+  <button class="btn btn-next" onclick="buildSynthese();switchTabByName('synthese')">Voir ma synthese →</button>
+</div>
+
+<!-- SYNTHESE -->
+<div id="pane-synthese" class="pane">
+  <div class="section-title">Votre synthese — Audit N+1</div>
+  <div class="section-sub">Resultat de l'audit + profil global sur les 11 exercices.</div>
+  <div id="synthese-atelier"></div>
+  <div class="note-block">
+    <div class="note-title">Ce que vous diriez a Luc Darnand aujourd'hui</div>
+    <div class="note-point"><strong style="color:var(--green)">1. Les actions ont porte leurs fruits</strong><br>Le retour au benefice (+82 k€) et la tresorerie positive (+94 k€) valident l'approche. La diversification client reduit un risque qui etait systemique.</div>
+    <div class="note-point"><strong style="color:var(--gold)">2. La masse salariale est le nouveau signal d'alerte</strong><br>+20% en un an pour +15% de CA. Les heures sup structurelles sont un cout quasi fixe. Si le volume baisse, la rentabilite s'effondre. Ce n'est plus une optimisation, c'est un risque operationnel.</div>
+    <div class="note-point"><strong style="color:var(--gold)">3. La marge reste en dessous de la norme</strong><br>35,1% vs norme ~45%. La repercussion des prix est amorcee mais incomplete. Chaque point de marge gagne vaut environ 37 k€ d'EBE supplementaire.</div>
+    <div class="note-point"><strong style="color:var(--green)">4. L'investissement est justifie — le financement, pas</strong><br>VAN positive, TRI a 28% : la machine cree de la valeur. Mais un emprunt classique a 280 k€ ferait chuter la solvabilite. Le credit-bail ou un apport partiel en capital sont les voies a explorer en priorite.</div>
+  </div>
+  <div class="profil-card">
+    <div class="profil-header">Votre profil global — 11 exercices</div>
+    <div id="profil-global"><div style="font-size:13px;color:var(--text3);font-style:italic">Chargement...</div></div>
+  </div>
+  <div id="axes-amelioration"></div>
+  <div style="height:20px"></div>
+</div>
+
+<script>
+const QE1=[
+  {q:"La marge brute progresse de +0,7 point en N+1. Un consultant junior conclut que le probleme de marge est regle. Que lui repondez-vous ?",
+   choices:[
+     "Il a raison — toute progression est un succes et la tendance suffit a rassurer",
+     "La progression est reelle mais le diagnostic est premature : la marge reste sous la norme sectorielle, l'ecart absolu en euros est encore significatif",
+     "Il a tort uniquement parce que le CA a aussi augmente, ce qui fausse le ratio"
+   ],
+   ans:1,fb:"La direction est bonne mais 35,1% vs norme ~45% represente un ecart de ~10 points. Chaque point de marge manquant correspond a environ 37 k€ d'EBE non genere. Une progression ne vaut pas une resolution."},
+  {q:"Les charges de personnel passent de 486 a 582 k€ (+20%) alors que le CA progresse de +15%. Quelle est l'implication la plus preoccupante a moyen terme ?",
+   choices:[
+     "Le ratio charges/CA se degrade mecaniquement, ce qui reduit l'EBE de facon permanente",
+     "Les salaries sont mieux payes, ce qui peut creer des tensions syndicales",
+     "L'entreprise recrute trop vite et risque de devoir licencier si l'activite ralentit"
+   ],
+   ans:0,fb:"Les heures supplementaires deviennent un cout structurel : meme si elles sont flexibles en theorie, en pratique elles sont recurrentes. Quand les charges progressent plus vite que le CA, l'effet de ciseau comprime les marges independamment du volume."},
+  {q:"Les machines tournent a 97% de leur capacite. Luc se felicite d'une excellente utilisation des actifs. Quel angle d'analyse lui manque-t-il ?",
+   choices:[
+     "Un taux d'utilisation eleve augmente les couts de maintenance de facon exponentielle",
+     "Au-dela de 85-90% de capacite, l'entreprise n'a plus de marge de manoeuvre pour absorber les imprevu, les pics de demande ou une panne",
+     "Les machines sont sous-amorties si elles tournent trop, ce qui degrade le bilan"
+   ],
+   ans:1,fb:"Le taux d'utilisation optimal en industrie se situe generalement entre 80 et 85%. Au-dela, la maintenance preventive devient impossible a planifier, les risques de panne non anticipee augmentent et toute commande urgente est impossible a honorer. La performance apparente masque une fragilite operationnelle."},
+  {q:"Promobuild represente desormais 24% du CA contre 38% en N. Comment interpreter cette evolution dans une analyse de risque ?",
+   choices:[
+     "Le risque de dependance est elimine — 24% est un niveau tout a fait standard pour un client industriel",
+     "La progression est notable mais insuffisante pour changer la classification du risque : 24% sur un seul client reste une concentration elevee avec un effet systemique potentiel",
+     "La diversification est un succes complet mais elle a sacrifie de la marge car les nouveaux clients sont moins rentables que Promobuild"
+   ],
+   ans:1,fb:"Passer de 38 a 24% est une avancee reelle. Mais 24% signifie qu'un seul client represente encore presque un quart du CA. En cas de litige commercial, de retard de paiement ou de deterioration de la relation, l'impact sur la tresorerie et le resultat reste tres significatif. L'effort doit continuer."},
+];
+
+const CALCS=[
+  {
+    label:"Taux de marge brute N+1",
+    formula:"Marge brute / Chiffre d'affaires x 100",
+    hint:"Retrouvez marge brute et CA dans le CR compare",
+    unit:"%",exp:35.1,
+    fb:"35,1%. La marge progresse mais reste sous la norme sectorielle (~45%). L'ecart represente environ 365 k€ de marge non capturee chaque annee."
+  },
+  {
+    label:"Taux d'EBE N+1",
+    formula:"EBE / Chiffre d'affaires x 100",
+    hint:"L'EBE est dans le CR compare — le CA aussi",
+    unit:"%",exp:5.9,
+    fb:"5,9%. Nette amelioration par rapport a N (3,1%) mais toujours sous la norme >8%. La hausse de masse salariale plafonne la progression de l'EBE malgre l'amelioration de la marge."
+  },
+  {
+    label:"Taux de solvabilite N+1",
+    formula:"Capitaux propres / Total bilan x 100",
+    hint:"Les deux elements sont dans le bilan N+1",
+    unit:"%",exp:23.1,
+    fb:"23,1% contre 16,1% en N. Le benefice de 82 k€ integre aux capitaux propres explique la progression. Reste sous la norme >30% — un emprunt supplementaire de 280 k€ ferait rechuter ce ratio."
+  },
+  {
+    label:"Cout annuel reel des heures supplementaires",
+    formula:"Nombre d'heures x Taux horaire x Coefficient de majoration legale (1,25 minimum)",
+    hint:"Donnees complementaires : 1 300 h/an, 28 €/h, majoration 25%",
+    unit:"k€",exp:45.5,
+    fb:"1 300 x 28 x 1,25 = 45 500 € soit environ 45,5 k€/an. C'est le cout d'un mi-temps salarie. Cette somme est recurrente et quasi fixe tant que la saturation des machines persiste."
+  },
+  {
+    label:"Tresorerie nette N+1",
+    formula:"Fonds de Roulement — Besoin en Fonds de Roulement   |   FR = CP + Emprunts MLT — Immobilisations   |   BFR = Stocks + Creances — Dettes fournisseurs — Dettes sociales",
+    hint:"Toutes les donnees sont dans le bilan N+1",
+    unit:"k€",exp:94,
+    fb:"FR = 338+520-635 = 223 k€. BFR = 390+345-296-310 = 129 k€. TN = 223-129 = +94 k€. La tresorerie nette est positive pour la premiere fois — ce chiffre doit correspondre a la tresorerie affichee au bilan (coherence a verifier)."
+  },
+];
+
+const QE3=[
+  {q:"En N, le risque de liquidite etait critique (tresorerie nette -70 k€). Avec 94 k€ en N+1, un membre du conseil propose de ne plus le surveiller. Quelle est votre position ?",
+   choices:[
+     "Il a raison — une tresorerie positive elimine mecaniquement le risque de liquidite a court terme",
+     "Le risque est reduit mais pas elimine : la couverture de la masse salariale mensuelle reste limitee et tout incident significatif peut faire basculer la situation",
+     "Le risque est desormais nul car la tresorerie nette est positive ET le decouvert bancaire est a zero"
+   ],
+   ans:1,fb:"94 k€ de tresorerie representent environ 2 mois de masse salariale. C'est insuffisant comme coussin de securite. Un retard de reglement de Promobuild, une panne machine ou une commande annulee suffisent a recreer une tension. Le risque passe de critique a modere — pas de surveiller."},
+  {q:"Quel risque, absent en N, est le plus difficile a gerer rapidement en N+1 ?",
+   choices:[
+     "Le risque de dependance client, car il faut du temps pour diversifier un portefeuille",
+     "Le risque de masse salariale, car les heures supplementaires structurelles creent une rigidite que ni une reduction de commandes ni une decision rapide ne peuvent absorber sans impact social",
+     "Le risque de solvabilite, car les emprunts MLT ne peuvent pas etre renegocies rapidement"
+   ],
+   ans:1,fb:"Les heures supplementaires structurelles sont le risque le plus insidieux : elles ne figurent pas comme un engagement contractuel mais leur suppression brutale entrainerait des tensions sociales et une perte de productivite. C'est une rigidite de fait, pas de droit, et donc plus difficile a piloter."},
+  {q:"La solvabilite passe de 16,1% a 23,1%. Luc envisage de lancer l'investissement en empruntant 280 k€. Quelle analyse faites-vous de l'impact ?",
+   choices:[
+     "L'amelioration de 7 points cree une marge de manoeuvre suffisante pour absorber un emprunt supplementaire sans risque",
+     "L'ajout de 280 k€ d'emprunt augmente le total bilan et degrade le ratio : avec les memes CP, la solvabilite rechuterait vers 18-19%, en dessous du niveau de N+1 actuel",
+     "La solvabilite n'est pas le bon indicateur pour evaluer la capacite d'investissement — il faut regarder uniquement la VAN"
+   ],
+   ans:1,fb:"Si on emprunte 280 k€ : actif +280 (machine), dette +280. Total bilan passe a ~1 744 k€. Avec CP inchanges a 338 k€, le ratio tombe a 338/1744 = 19,4%. On efface une partie des progres accomplis. Le mode de financement est donc aussi important que la decision d'investir."},
+  {q:"La saturation des machines a 97% genere simultanement un risque operationnel et un argument en faveur de l'investissement. Comment arbitrez-vous ?",
+   choices:[
+     "Le risque operationnel est la priorite — il faut reduire la charge avant d'investir, quitte a refuser des commandes",
+     "Les deux lectures sont complementaires : la saturation justifie l'investissement ET signale l'urgence de le financer dans de bonnes conditions plutot que de l'ajourner indefiniment",
+     "L'argument en faveur de l'investissement est plus fort — le risque operationnel disparait des que la machine est en place"
+   ],
+   ans:1,fb:"Refuser des commandes detruirait la relation client et la diversification en cours. Mais investir dans de mauvaises conditions financieres fragilise le bilan. La bonne reponse est de traiter simultanement les deux dimensions : securiser le financement ET continuer a travailler la marge pour ameliorer la capacite d'emprunt."},
+];
+
+const QE4=[
+  {q:"Le delai de recuperation est de 2,5 ans. La VAN est positive a +183 k€ et le TRI est a 28%. Ces trois indicateurs pointent tous vers une decision favorable — pourquoi est-il quand meme insuffisant de s'appuyer sur le seul pay-back pour decider ?",
+   choices:[
+     "Parce que le pay-back ne tient pas compte des variations de tresorerie entre les annees",
+     "Parce que le pay-back ignore tout ce qui se passe apres le seuil de recuperation et ne valorise pas la duree de vie residuelle de la machine — il favorise les investissements courts meme si des projets plus longs sont plus rentables globalement",
+     "Parce que le pay-back surestime toujours la rentabilite en ne tenant pas compte de l'inflation"
+   ],
+   ans:1,fb:"Le pay-back repond a une question simple : quand suis-je rembourse ? Mais il ignore les 4,5 annees restantes apres le seuil. Pour Metalux, avec 7 ans de duree de vie et un TRI de 28%, la valeur creee au-dela de 2,5 ans est considerable. Le pay-back seul aurait conduit a la meme decision mais sans quantifier l'amplitude du gain."},
+  {q:"La VAN est de +183 k€ avec un taux d'actualisation de 6%. Si le cout du capital de Metalux etait en realite de 15% (prime de risque elevee pour une PME fragilisee), quelle serait l'implication sur la decision ?",
+   choices:[
+     "La decision ne change pas — un TRI de 28% reste superieur a 15%, donc la VAN reste positive et l'investissement reste pertinent",
+     "La VAN deviendrait negative car actualiser a 15% reduit fortement la valeur des flux futurs, rendant l'investissement non rentable",
+     "Le taux d'actualisation n'a pas d'impact sur la decision finale si le TRI est superieur au cout du capital"
+   ],
+   ans:0,fb:"TRI 28% > 15% = creation de valeur meme avec une prime de risque elevee. La VAN recalculee a 15% serait plus faible qu'a 6% mais resterait positive (environ +60 a +80 k€ selon les flux exacts). C'est precisement l'interet du TRI : il permet de comparer le rendement intrinseque de l'investissement a n'importe quel cout du capital."},
+  {q:"Metalux compare trois options : emprunt bancaire a 100%, credit-bail, apport partiel en capital des associes. Laquelle preserve le mieux la solvabilite tout en rendant l'investissement immediatement operationnel ?",
+   choices:[
+     "L'emprunt bancaire — le bien est immediatement proprietaire et les interets sont deductibles",
+     "Le credit-bail — le bien est utilisable immediatement, les loyers sont deductibles, et en normes francaises le bien ne figure pas au bilan, preservant ainsi le ratio de solvabilite",
+     "L'apport en capital — il renforce les capitaux propres mais necessite un accord des associes qui peut prendre plusieurs mois"
+   ],
+   ans:1,fb:"Le credit-bail repond aux trois contraintes simultanement : disponibilite immediate du bien, deductibilite des loyers, et absence d'impact sur le ratio de solvabilite en normes comptables francaises. L'apport en capital serait ideal structurellement mais il depend d'une decision externe et d'un delai. Les deux options peuvent aussi etre combinees."},
+  {q:"Un conseiller propose a Luc de financer la CNC par autofinancement en attendant 3 ans d'accumulation de tresorerie. Quelle est la faille principale de cette strategie ?",
+   choices:[
+     "Metalux n'a pas les reserves suffisantes et attendre 3 ans signifie continuer a saturer les machines existantes, ce qui augmente le risque operationnel et le cout des heures sup sur toute la periode",
+     "L'autofinancement est toujours preferable a l'emprunt — la faille est uniquement que 3 ans c'est trop long",
+     "Accumuler de la tresorerie pendant 3 ans degraderait la rentabilite des capitaux propres car l'argent ne travaille pas"
+   ],
+   ans:0,fb:"Attendre 3 ans pour autofinancer, c'est subir pendant 3 ans : heures sup structurelles, risque operationnel a 97% de capacite, incapacite a repondre aux pics de demande. Le cout de l'inaction (heures sup + risque panne + manque a gagner) peut depasser le cout d'un financement bien structure."},
+];
+
+const QE5=[
+  {q:"Luc vous demande quelle est la priorite absolue pour les 6 prochains mois, avant meme de trancher sur la machine. Que lui repondez-vous ?",
+   choices:[
+     "Finaliser le financement de la CNC — c'est le seul investissement qui resout simultanement la saturation et la masse salariale",
+     "Continuer a progresser sur la marge brute — c'est le levier qui ameliore l'EBE, renforce les capitaux propres organiquement et ameliore les conditions de financement de la machine",
+     "Reduire les heures supplementaires en renegociant les contrats clients pour lisser la charge"
+   ],
+   ans:1,fb:"Chaque point de marge gagne vaut environ 37 k€ d'EBE supplementaire. Passer de 35,1 a 38% ameliorerait la solvabilite sans aucun emprunt. C'est la condition pour obtenir de meilleures conditions de financement sur la machine. La machine resout un symptome — la marge traite la cause racine."},
+  {q:"Les heures supplementaires representent environ 45 k€/an. Luc hesite entre les maintenir (flexibilite) et embaucher (stabilite). Quelle analyse l'aide a trancher ?",
+   choices:[
+     "Comparer le cout horaire global des heures sup (avec majorations) au cout complet d'un poste CDI equivalent, et identifier le volume annuel au-dela duquel l'embauche devient financierement neutre ou avantageuse",
+     "Supprimer les heures sup immediatement et accepter une baisse temporaire de production le temps de recruter",
+     "Maintenir les heures sup indefiniment car elles offrent une flexibilite que le CDI n'offre pas — en cas de baisse d'activite, on supprime simplement les heures"
+   ],
+   ans:0,fb:"C'est une analyse de point mort salarial. A 45 k€/an d'heures sup, on approche deja le cout d'un temps partiel. Au-dela de ~1 500 h/an, un CDI devient comparable financierement ET reduit le risque operationnel. Luc doit chiffrer ce seuil avec son DRH avant de decider — ni la flexibilite ni la stabilite ne sont des reponses suffisantes sans les chiffres."},
+  {q:"Promobuild est a 24% du CA. Luc estime que le travail de diversification est suffisant et veut concentrer ses efforts commerciaux sur la fidelisation des clients existants plutot que la prospection. Est-ce le bon arbitrage ?",
+   choices:[
+     "Oui — fideliser les clients existants est toujours moins couteux que prospecter et 24% est un niveau raisonnable de dependance",
+     "Non — 24% sur un seul client reste une concentration significative. L'effort de prospection doit continuer pour atteindre un niveau ou la perte de ce client serait absorbable sans crise de tresorerie",
+     "Oui, a condition de signer un contrat d'exclusivite avec Promobuild qui securise le volume"
+   ],
+   ans:1,fb:"24% est mieux que 38% mais reste expose. Un contrat d'exclusivite avec Promobuild est une fausse securite : il cree une dependance juridique en plus de la dependance commerciale. L'objectif raisonnable est de ramener Promobuild sous 15-18% de facon a ce qu'une perte ou un litige n'engendre pas une crise de liquidite immediate."},
+  {q:"Comment structurez-vous votre note de synthese a Luc pour qu'elle soit a la fois honnete sur les risques et motivante sur les progres accomplis ?",
+   choices:[
+     "Presenter d'abord tous les points negatifs pour etre credible, puis terminer sur une note d'espoir",
+     "Reconnaitre explicitement les progres reels et mesurables, identifier precisement les 2 ou 3 chantiers prioritaires restants avec leur impact chiffre, et proposer un ordre de priorite clair",
+     "Se concentrer uniquement sur les points positifs pour preserver la motivation de Luc — les points negatifs peuvent attendre la prochaine reunion"
+   ],
+   ans:1,fb:"La posture consultant equilibree : valoriser ce qui fonctionne (cela donne de la credibilite et montre qu'on a lu le dossier) puis pointer ce qui reste a faire de facon specifique et chiffree (cela donne de l'utilite). Ni alarmiste ni complaisant. Une note qui ne dit que les problemes decourage, une note qui ne dit que les succes n'aide pas a progresser."},
+];
+
+let scores={
+  e1:new Array(QE1.length).fill(null),
+  calc:new Array(CALCS.length).fill(null),
+  e3:new Array(QE3.length).fill(null),
+  e4:new Array(QE4.length).fill(null),
+  e5:new Array(QE5.length).fill(null)
+};
+const MAX=QE1.length+CALCS.length+QE3.length+QE4.length+QE5.length;
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on');});
+  btn.classList.add('on');
+  document.getElementById('pane-'+id).classList.add('on');
+  document.getElementById('score-bar').style.display=(id==='docs'||id==='etape4'||id==='synthese')?'none':'flex';
+  updateScoreBar();
+}
+function switchTabByName(id){
+  var ids=['docs','etape1','etape2','etape3','etape4','etape5','etape6','synthese'];
+  document.querySelectorAll('.tab').forEach(function(t,i){if(ids[i]===id)switchTab(id,t);});
+}
+function updateScoreBar(){
+  var total=getTotalScore();
+  document.getElementById('score-num').textContent=total;
+  document.getElementById('score-label').textContent='/ '+MAX+' points';
+  document.getElementById('score-pct').textContent=Math.round(total/MAX*100)+'%';
+}
+function getTotalScore(){
+  return scores.e1.filter(function(v){return v===true;}).length+
+    scores.calc.filter(function(v){return v===true;}).length+
+    scores.e3.filter(function(v){return v===true;}).length+
+    scores.e4.filter(function(v){return v===true;}).length+
+    scores.e5.filter(function(v){return v===true;}).length;
+}
+
+function buildQCM(qs,containerId,scoreKey){
+  var c=document.getElementById(containerId);c.innerHTML='';
+  qs.forEach(function(q,i){
+    var card=document.createElement('div');card.className='q-card';
+    var btns='';
+    q.choices.forEach(function(ch,ci){
+      btns+='<button class="q-btn" data-val="'+ci+'" onclick="handleQ(this,'+i+',\''+scoreKey+'\')">'+ch+'</button>';
+    });
+    card.innerHTML='<div class="q-header"><div class="q-num">'+(i+1)+'</div><div class="q-text">'+q.q+'</div></div><div class="q-choices" id="'+scoreKey+'-c-'+i+'">'+btns+'</div><div class="q-feedback" id="'+scoreKey+'-f-'+i+'"></div>';
+    c.appendChild(card);
+  });
+}
+
+function handleQ(btn,idx,key){
+  if(btn.classList.contains('correct')||btn.classList.contains('dimmed'))return;
+  var qs={e1:QE1,e3:QE3,e4:QE4,e5:QE5}[key];
+  var q=qs[idx];
+  var fb=document.getElementById(key+'-f-'+idx);
+  var choices=document.querySelectorAll('#'+key+'-c-'+idx+' .q-btn');
+  choices.forEach(function(b){
+    if(parseInt(b.dataset.val)===q.ans){b.classList.remove('selected');b.classList.add('correct');}
+    else if(b===btn){b.classList.remove('selected');b.classList.add('wrong');}
+    else{b.classList.add('dimmed');}
+  });
+  var isOk=parseInt(btn.dataset.val)===q.ans;
+  scores[key][idx]=isOk;
+  fb.className=isOk?'q-feedback show ok':'q-feedback show ko';
+  fb.innerHTML=q.fb;
+  updateScoreBar();
+}
+
+function buildCalcs(){
+  var c=document.getElementById('calc-blocks');c.innerHTML='';
+  CALCS.forEach(function(cal,i){
+    var block=document.createElement('div');block.className='calc-block';
+    block.innerHTML='<div class="calc-label"><strong>'+cal.label+'</strong></div>'
+      +'<div class="calc-formula">Formule : '+cal.formula+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-bottom:8px">'+cal.hint+'</div>'
+      +'<div class="calc-row"><input class="input-field" id="c'+i+'" type="number" step="0.1" placeholder="?" oninput="resetCalc('+i+')"><span class="input-unit">'+cal.unit+'</span></div>'
+      +'<div class="calc-feedback" id="cf'+i+'"></div>'
+      +'<button class="calc-check" onclick="checkCalc('+i+')">Verifier</button>';
+    c.appendChild(block);
+  });
+}
+function resetCalc(i){
+  document.getElementById('c'+i).classList.remove('correct','wrong');
+  document.getElementById('cf'+i).className='calc-feedback';
+}
+function checkCalc(i){
+  var cal=CALCS[i];
+  var v=parseFloat(document.getElementById('c'+i).value);
+  var fb=document.getElementById('cf'+i);
+  if(isNaN(v)){fb.className='calc-feedback ko';fb.innerHTML='Entrez une valeur numerique.';return;}
+  if(Math.abs(v-cal.exp)<=1){
+    document.getElementById('c'+i).classList.add('correct');
+    fb.className='calc-feedback ok';fb.innerHTML=cal.fb;
+    scores.calc[i]=true;
+    document.querySelector('#calc-blocks .calc-block:nth-child('+(i+1)+') .calc-check').disabled=true;
+  }else{
+    document.getElementById('c'+i).classList.add('wrong');
+    fb.className='calc-feedback ko';fb.innerHTML='Verifiez votre application de la formule et retrouvez les bons montants dans le dossier.';
+  }
+  updateScoreBar();
+}
+
+var EX_META=[
+  {key:'ex01',label:'Plan comptable',max:10},
+  {key:'ex02',label:'Flux de l\'entreprise',max:10},
+  {key:'ex03',label:'Compte de resultat',max:10},
+  {key:'ex04',label:'Les SIG',max:13},
+  {key:'ex05',label:'Le bilan',max:28},
+  {key:'ex06',label:'Ou trouver l\'info',max:21},
+  {key:'ex07',label:'Impact des operations',max:16},
+  {key:'ex08',label:'Les ratios',max:15},
+  {key:'ex09',label:'Grands equilibres',max:13},
+  {key:'ex10',label:'Risques financiers',max:16},
+  {key:'ex11',label:'Audit N+1',max:MAX},
+];
+
+function getLS(key){
+  try{var d=localStorage.getItem('metalux_'+key);return d?JSON.parse(d):null;}catch(e){return null;}
+}
+function scoreColor(pct){return pct>=80?'#27500A':pct>=60?'#854F0B':'#A32D2D';}
+function scoreBadge(pct){
+  if(pct>=80)return '<span class="theme-badge t-ok">Maitrise</span>';
+  if(pct>=60)return '<span class="theme-badge t-warn">En cours</span>';
+  return '<span class="theme-badge t-ko">A revoir</span>';
+}
+
+function buildSynthese(){
+  var total=getTotalScore();
+  var pct=Math.round(total/MAX*100);
+  var sc=pct>=80?'#27500A':pct>=60?'#854F0B':'#791F1F';
+  var sb=pct>=80?'#EAF3DE':pct>=60?'#f9eed8':'#FCEBEB';
+  var maitrise=[];var renforcer=[];
+  if(scores.e1.filter(function(v){return v===true;}).length>=3)maitrise.push('Lire une evolution annuelle et identifier les signaux emergents');
+  else renforcer.push('Lecture comparative — distinguer tendance positive et objectif atteint');
+  if(scores.calc.filter(function(v){return v===true;}).length>=4)maitrise.push('Calculer les ratios N+1 et analyser la structure salariale');
+  else renforcer.push('Ratios — revoir marge brute, EBE, solvabilite et tresorerie nette');
+  if(scores.e3.filter(function(v){return v===true;}).length>=3)maitrise.push('Actualiser une matrice de risques et identifier les risques emergents');
+  else renforcer.push('Matrice de risques — certains reculent, d\'autres apparaissent');
+  if(scores.e4.filter(function(v){return v===true;}).length>=3)maitrise.push('Comparer VAN / TRI / Pay-back et evaluer les modes de financement');
+  else renforcer.push('Methodes d\'investissement — revoir les fiches notions de l\'etape 4');
+  if(scores.e5.filter(function(v){return v===true;}).length>=3)maitrise.push('Formuler des recommandations equilibrees en posture consultant');
+  else renforcer.push('Recommandations — prioriser, chiffrer, valoriser les progres');
+
+  var msg=pct>=80?'Excellent — audit N+1 maitrise !':pct>=60?'Bon niveau — quelques points a consolider':'Des points a consolider';
+  var html='<div class="synthese-card"><div class="synthese-header" style="background:'+sb+'"><div class="synthese-score-big" style="color:'+sc+'">'+pct+'%</div><div><strong style="color:'+sc+';font-size:15px">'+total+' / '+MAX+' points</strong><br><span style="font-size:13px;color:'+sc+'">'+msg+'</span></div></div><div class="synthese-body">';
+  if(maitrise.length){html+='<div style="font-size:11px;font-weight:700;color:#27500A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Maitrise</div>';maitrise.forEach(function(m){html+='<div class="synthese-row s-ok"><span>'+m+'</span></div>';});}
+  if(renforcer.length){html+='<div style="font-size:11px;font-weight:700;color:#854F0B;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 2px">A renforcer</div>';renforcer.forEach(function(r){html+='<div class="synthese-row s-ko"><span>'+r+'</span></div>';});}
+  html+='</div></div>';
+  document.getElementById('synthese-atelier').innerHTML=html;
+  saveScoreLS('ex11',total,MAX);
+  buildProfilGlobal();
+}
+
+function buildProfilGlobal(){
+  var totalScore=0,totalMax=0,doneCount=0;
+  var axesList=[];
+  var rowsHtml='';
+  EX_META.forEach(function(ex){
+    var s=getLS(ex.key);
+    var scoreText=s?s.score+'/'+s.max+' ('+s.pct+'%)':'—';
+    var badge=s?scoreBadge(s.pct):'<span class="theme-badge" style="background:var(--bg3);color:var(--text3)">Non fait</span>';
+    if(s){totalScore+=s.score;totalMax+=s.max;doneCount++;if(s.pct<60)axesList.push({label:ex.label,pct:s.pct});}
+    else{totalMax+=ex.max;}
+    rowsHtml+='<div class="theme-row"><span style="color:var(--text2)">'+ex.label+'</span><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--text3)">'+scoreText+'</span>'+badge+'</div></div>';
+  });
+  var globalPct=totalMax>0?Math.round(totalScore/totalMax*100):0;
+  var color=scoreColor(globalPct);
+  var msg2=globalPct>=80?'Excellent — vous maitrisez la lecture des documents comptables !':globalPct>=60?'Bon niveau — quelques points a consolider':'Des bases a renforcer — concentrez-vous sur les exercices a revoir';
+  var html='<div style="text-align:center;margin-bottom:10px"><div class="profil-score-big" style="color:'+color+'">'+globalPct+'%</div><div style="font-size:13px;color:var(--text2)">'+totalScore+' pts sur '+totalMax+' — '+doneCount+'/11 exercices</div></div><div class="progress-bar"><div class="progress-fill" style="width:'+globalPct+'%;background:'+color+'"></div></div><div style="font-size:13px;font-weight:600;color:'+color+';text-align:center;margin-bottom:12px">'+msg2+'</div>'+rowsHtml;
+  document.getElementById('profil-global').innerHTML=html;
+  if(axesList.length>0){
+    axesList.sort(function(a,b){return a.pct-b.pct;});
+    var axHtml='<div class="profil-card"><div class="profil-header">Vos axes d\'amelioration</div>';
+    axesList.forEach(function(ax){
+      axHtml+='<div class="axe-row"><div><strong style="color:var(--gold-dark)">'+ax.label+'</strong><div style="font-size:12px;color:var(--text2);margin-top:2px">Score : '+ax.pct+'% — refaites cet exercice</div></div></div>';
+    });
+    axHtml+='</div>';
+    document.getElementById('axes-amelioration').innerHTML=axHtml;
+  }
+}
+
+function saveScoreLS(key,score,max){
+  try{localStorage.setItem('metalux_'+key,JSON.stringify({score:score,max:max,date:new Date().toLocaleDateString('fr-FR'),pct:Math.round(score/max*100)}));}catch(e){}
+}
+
+buildQCM(QE1,'qlist-e1','e1');
+buildCalcs();
+buildQCM(QE3,'qlist-e3','e3');
+buildQCM(QE4,'qlist-e4','e4');
+buildQCM(QE5,'qlist-e5','e5');
+</script>
+</body>
+</html>
